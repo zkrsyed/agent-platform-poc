@@ -56,7 +56,7 @@ ls -la agents/ga4_guide && cat agents/ga4_guide/.env && echo && cat agents/ga4_g
 - `.env` holds `GOOGLE_GENAI_USE_ENTERPRISE=1`, `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION=global`. ADK loads it automatically. It searches from the agent folder **upwards** for the first `.env` it finds (**verified** in `google/adk/cli/utils/envs.py`).
 - `agent.py` defines `root_agent = Agent(...)` with a one-line instruction and no tools.
 
-> `--region global` is because `gemini-3.5-flash` only answered on `global` in kc-okf. When we deploy in lesson 7, the *agent* runs in a region such as `us-central1`, while the *model* is still called on `global`. Those are two different settings.
+> `--region global` is because `gemini-3.5-flash` only answered on `global` in kc-okf. When we deploy in lesson 8, the *agent* runs in a region such as `us-central1`, while the *model* is still called on `global`. Those are two different settings.
 
 ## Step 2. Replace `agent.py` with the GA4 guide
 
@@ -95,7 +95,7 @@ def remember_analyst(name: str, team: str, tool_context: ToolContext) -> dict:
 root_agent = Agent(
     name="ga4_guide",
     model=MODEL,
-    # The description is for OTHER agents and registries (lessons 9 and 11), not for this model.
+    # The description is for OTHER agents and registries (lessons 10 and 12), not for this model.
     description=(
         "Answers questions about the GA4 sample table "
         "kc-okf-poc-261122.ga4_sample.events (Google Merchandise Store)."
@@ -159,16 +159,16 @@ In the UI, pick **ga4_guide** and repeat the three messages. Then explore:
 | **Events** | Click each row: user message → `functionCall remember_analyst` → `functionResponse` → model text | Events |
 | **State** | `user:analyst_name`, `user:team`, `times_remembered`, `last_answer` | State and its prefixes |
 | **Sessions** | Start a **new session**, say `hi`, and check whether it already knows your name | `user:` state outlives one session |
-| **Trace** | Timing bars for the model call and the tool call | Spans (lesson 13 shows the same in Cloud Trace) |
+| **Trace** | Timing bars for the model call and the tool call | Spans (lesson 16 shows the same in Cloud Trace) |
 | The graph icon, if present | Agent → tool diagram | A local version of Topology |
 
 Stop it with `Ctrl+C`.
 
-> Where did the sessions go? `adk web` stores them locally (**guess**: under `.adk/` in SQLite). That folder is git-ignored. On Agent Runtime the managed **Sessions** service replaces it (lesson 7).
+> Where did the sessions go? `adk web` stores them locally (**guess**: under `.adk/` in SQLite). That folder is git-ignored. On Agent Runtime the managed **Sessions** service replaces it (lesson 8).
 
 ## Step 5. Do it yourself: the Runner by hand
 
-`adk run` and `adk web` are both thin wrappers around a **Runner** and a **SessionService**. Writing those yourself removes the magic. In lesson 6 (eval) and lesson 7 (deploy), ADK does exactly this.
+`adk run` and `adk web` are both thin wrappers around a **Runner** and a **SessionService**. Writing those yourself removes the magic. In lesson 6 (eval) and lesson 8 (deploy), ADK does exactly this.
 
 Create **`scripts/runner_demo.py`**:
 

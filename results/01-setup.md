@@ -31,14 +31,14 @@ Run on 2026-11-24. Everything on this page is **verified** unless marked otherwi
 
 ## Things worth noticing
 
-1. **`apptopology.googleapis.com`, `cloudtrace`, `telemetry` and `logging` were already enabled.** We didn't turn them on in this POC. They were probably switched on with Agent Platform or during kc-okf (**guess**). App Topology is likely what draws the Topology view in lesson 13 (**guess**).
+1. **`apptopology.googleapis.com`, `cloudtrace`, `telemetry` and `logging` were already enabled.** We didn't turn them on in this POC. They were probably switched on with Agent Platform or during kc-okf (**guess**). App Topology is likely what draws the Topology view in lesson 16 (**guess**).
 2. **The ADK CLI has more than the docs' quickstart shows.** `adk --help` lists `api_server`, `conformance`, `create`, `deploy`, `eval`, `eval_set`, `generate_agent_card`, `migrate`, `optimize`, `run`, `telemetry`, `test`, `web`. Three map straight onto later lessons:
-   - `adk optimize`: "Optimizes the root agent instructions using the GEPA optimizer". This is a local prompt optimizer to compare with Google's managed one in lesson 14.
-   - `adk generate_agent_card`: builds A2A agent cards (lesson 11).
+   - `adk optimize`: "Optimizes the root agent instructions using the GEPA optimizer". This is a local prompt optimizer to compare with Google's managed one in lesson 17.
+   - `adk generate_agent_card`: builds A2A agent cards (lesson 12).
    - `adk eval_set` / `adk test`: manage evalsets and run tests (lesson 6).
-3. **Install size:** 134 packages, including pandas, scikit-learn, scipy and boto3, mostly from the `eval` extra and litellm. This affects deploy package size in lesson 7 (**guess**).
+3. **Install size:** 134 packages, including pandas, scikit-learn, scipy and boto3, mostly from the `eval` extra and litellm. This affects deploy package size in lesson 8 (**guess**).
 
 ## Questions this raises (to check later)
 
-- Does Agent Runtime install `google-cloud-aiplatform` 2.x on deploy, or the `>=1.112` that the docs pin? (lesson 7)
-- Is `apptopology` the API behind the Topology view? (lesson 13)
+- Does Agent Runtime install `google-cloud-aiplatform` 2.x on deploy, or the `>=1.112` that the docs pin? (lesson 8)
+- Is `apptopology` the API behind the Topology view? (lesson 16)

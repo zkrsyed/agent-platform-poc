@@ -96,10 +96,11 @@ We **won't** turn on the other APIs yet. Each later lesson turns on its own, so 
 | Lesson | APIs (expected; we confirm names when we get there) |
 |---|---|
 | 5 | Cloud Run, Artifact Registry, Cloud Build (for the MCP server image) |
-| 7 | Cloud Storage (staging bucket), Cloud Trace / Telemetry, Cloud Logging |
-| 9 | Agent Registry (**guess**: name to check) |
-| 10 | Agent Gateway / IAP / Model Armor (**guess**: names to check) |
-| 16 | Cloud Build, IAM Credentials (for WIF) |
+| 8 | Cloud Storage (staging bucket), Cloud Trace / Telemetry, Cloud Logging |
+| 10 | Agent Registry (**guess**: name to check) |
+| 11 | Agent Gateway / IAP / Model Armor (**guess**: names to check) |
+| 14 | Cloud Run + IAP or Identity Platform (web GUI login, **guess**) |
+| 19 | Cloud Build, IAM Credentials (for WIF) |
 
 ## Step 4. Create the Python project
 
@@ -121,9 +122,9 @@ What the extras are for:
 |---|---|---|
 | `mcp` | `McpToolset`, the MCP client | 3, 5 |
 | `eval` | `adk eval` scoring | 6 |
-| `agent-identity` | Agent Identity / Agent Registry auth helpers (the docs ask for ADK ≥ 1.29 with this extra) | 7–9 |
-| `a2a` | Agent2Agent client and server | 11 |
-| `agent_engines`, `adk` (on aiplatform) | Deploy to Agent Runtime, `AdkApp` wrapper | 7 |
+| `agent-identity` | Agent Identity / Agent Registry auth helpers (the docs ask for ADK ≥ 1.29 with this extra) | 8–10 |
+| `a2a` | Agent2Agent client and server | 12 |
+| `agent_engines`, `adk` (on aiplatform) | Deploy to Agent Runtime, `AdkApp` wrapper | 8 |
 
 **If `uv add` fails** because the two packages want different `google-adk` versions, copy the error to me. Don't try to fix it by hand. A clash like that is a real finding to record.
 

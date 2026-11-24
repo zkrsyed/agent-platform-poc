@@ -10,7 +10,7 @@ The agent is a **GA4 data guide**. It answers questions about a BigQuery table u
 
 **The big idea:** an agent, an MCP server and a skill are three separate things you can deploy and register on their own. Agent Identity says who is calling; IAM and **Agent Gateway** decide what that caller may use.
 
-**Start with [`index.html`](index.html)** (open it in a browser). It has the architecture diagram, the glossary and the lesson list. The same content as plain text is in [`docs/lesson-plan.md`](docs/lesson-plan.md) and [`docs/glossary.md`](docs/glossary.md).
+**Start with the map: https://zkrsyed.github.io/agent-platform-poc/** (the same page as [`index.html`](index.html)). It has the architecture diagram, the glossary and the lesson list. The same content as plain text is in [`docs/lesson-plan.md`](docs/lesson-plan.md) and [`docs/glossary.md`](docs/glossary.md).
 
 ## How this repo is used
 

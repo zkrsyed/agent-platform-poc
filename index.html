@@ -133,7 +133,7 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <rect class="bx dev" x="30" y="200" width="210" height="70"/>
   <text class="t" x="44" y="224">adk web · adk run</text>
   <text class="s" x="44" y="244">local chat, sessions, events</text>
-  <text class="s" x="44" y="260">adk eval (evalset)</text>
+  <text class="s" x="44" y="260">adk eval + simulated users</text>
 
   <rect class="bx dev" x="30" y="300" width="210" height="60"/>
   <text class="t" x="44" y="324">GitHub repo</text>
@@ -168,7 +168,7 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <text class="t" x="340" y="270">ga4_guide (ADK agent)</text>
   <text class="s" x="340" y="290">Runner · instruction · tools</text>
   <text class="s" x="340" y="308">skill loaded on demand</text>
-  <text class="s" x="340" y="324">callbacks = guardrails</text>
+  <text class="s" x="340" y="324">plugins + callbacks = guardrails</text>
   <rect class="bx gv" x="326" y="344" width="268" height="40"/>
   <text class="t" x="340" y="369" font-size="13">Agent Identity · principal://…</text>
   <rect class="bx" x="326" y="394" width="128" height="34" fill="var(--surface)" stroke="var(--cloud)"/>
@@ -214,8 +214,8 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <text class="s" x="324" y="602">packaged agent</text>
 
   <rect class="bx cl" x="470" y="560" width="140" height="60"/>
-  <text class="t" x="484" y="584">Trace · Logging</text>
-  <text class="s" x="484" y="602">spans, gateway logs</text>
+  <text class="t" x="484" y="584">Trace · Topology</text>
+  <text class="s" x="484" y="602">online eval, logs</text>
 
   <rect class="bx cl" x="630" y="560" width="160" height="60"/>
   <text class="t" x="644" y="584">Cloud Run</text>
@@ -270,10 +270,17 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <!-- cloud run hosts OKF MCP -->
   <path class="ln dash" d="M790 590 H835 V395 H850" marker-end="url(#ah)"/>
 
+  <!-- langfuse -->
+  <rect class="bx tl" x="830" y="40" width="260" height="80" stroke-dasharray="6 4"/>
+  <text class="t" x="844" y="64">Langfuse (self-hosted)</text>
+  <text class="s" x="844" y="84">same OpenTelemetry traces,</text>
+  <text class="s" x="844" y="102">compared with Cloud Trace</text>
+  <g><circle class="num" cx="1082" cy="48" r="11"/><text class="numt" x="1082" y="52" text-anchor="middle">13</text></g>
+
   <!-- lesson numbers -->
   <g><circle class="num" cx="232" cy="78" r="11"/><text class="numt" x="232" y="82" text-anchor="middle">2</text></g>
   <g><circle class="num" cx="232" cy="208" r="11"/><text class="numt" x="232" y="212" text-anchor="middle">6</text></g>
-  <g><circle class="num" cx="232" cy="398" r="11"/><text class="numt" x="232" y="402" text-anchor="middle">13</text></g>
+  <g><circle class="num" cx="232" cy="398" r="11"/><text class="numt" x="232" y="402" text-anchor="middle">16</text></g>
   <g><circle class="num" cx="602" cy="198" r="11"/><text class="numt" x="602" y="202" text-anchor="middle">7</text></g>
   <g><circle class="num" cx="586" cy="352" r="11"/><text class="numt" x="586" y="356" text-anchor="middle">8</text></g>
   <g><circle class="num" cx="782" cy="198" r="11"/><text class="numt" x="782" y="202" text-anchor="middle">9</text></g>
@@ -284,7 +291,7 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <g><circle class="num" cx="1062" cy="548" r="11"/><text class="numt" x="1062" y="552" text-anchor="middle">4</text></g>
   <g><circle class="num" cx="586" cy="402" r="11"/><text class="numt" x="586" y="406" text-anchor="middle">12</text></g>
   <g><circle class="num" cx="602" cy="478" r="11"/><text class="numt" x="602" y="482" text-anchor="middle">9</text></g>
-  <g><circle class="num" cx="602" cy="568" r="11"/><text class="numt" x="602" y="572" text-anchor="middle">14</text></g>
+  <g><circle class="num" cx="602" cy="568" r="11"/><text class="numt" x="602" y="572" text-anchor="middle">13</text></g>
 </svg>
 </div>
 <p class="diagram-note">Blue circles show the lesson that covers each part. Dashed lines are optional or happen automatically (the Registry entry is created when the agent is deployed, <strong>docs</strong>).</p>
@@ -325,7 +332,24 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <div class="card" style="--c:var(--tool)"><h3>MCP</h3><p>The standard way to plug tools and data into any agent. We use Google's hosted server and build one of our own.</p><span class="net">≈ ODBC for agent tools</span></div>
   <div class="card" style="--c:var(--tool)"><h3>Skill</h3><p>A <code>SKILL.md</code> folder of know-how that the agent loads only when it needs it (progressive disclosure).</p><span class="net">≈ a runbook opened on demand</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>A2A</h3><p>Agent-to-agent protocol. An <em>agent card</em> describes what an agent can do and where to reach it.</p><span class="net">≈ gRPC + OpenAPI between services</span></div>
-  <div class="card" style="--c:var(--dev)"><h3>Eval + CI/CD</h3><p><code>adk eval</code> runs saved conversations as tests; Cloud Build deploys only if they pass.</p><span class="net">≈ test stage in Azure Pipelines</span></div>
+  <div class="card" style="--c:var(--gov)"><h3>ADK plugin</h3><p>Code registered once that runs before and after every model and tool call: logging, blocking, asking a human to confirm.</p><span class="net">≈ global middleware</span></div>
+  <div class="card" style="--c:var(--dev)"><h3>Evaluate → optimize</h3><p>Offline tests, simulated users and online AI judges find failures; the prompt optimizer suggests fixes; then you re-score.</p><span class="net">≈ tests + APM + tuning advisor</span></div>
+  <div class="card" style="--c:var(--cloud)"><h3>Traces + Topology</h3><p>Every model and tool call is a span (OpenTelemetry). Compared with LangSmith and Langfuse, Google keeps the traces in your own project.</p><span class="net">≈ Application Insights + App Map</span></div>
+  <div class="card" style="--c:var(--dev)"><h3>Three ways to build</h3><p>Low-code in Agent Studio, config with the Managed Agents API (Preview), or code with ADK. All run on the same platform.</p><span class="net">≈ Logic Apps vs YAML vs C#</span></div>
+  <div class="card" style="--c:var(--dev)"><h3>CI/CD</h3><p>One pipeline per deployable (agent, MCP server, skill). The eval gate must pass before deploy.</p><span class="net">≈ Azure Pipelines with a test stage</span></div>
+</div>
+
+<h3 style="margin:24px 0 8px">Guardrails live in two places</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>ADK plugin (in code, lesson 8)</th><th>Agent Gateway (on the network, lesson 10)</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Runs</strong></td><td>Inside the agent process</td><td>Outside, on every outbound call</td></tr>
+    <tr><td><strong>Owned by</strong></td><td>Whoever deploys the agent</td><td>Platform or security team</td></tr>
+    <tr><td><strong>Bypassable?</strong></td><td>Yes, by changing the code</td><td>No (<strong>docs</strong>)</td></tr>
+    <tr><td><strong>Good for</strong></td><td>Logging, human approval, fixing arguments</td><td>Hard allow/deny per identity and tool, Model Armor</td></tr>
+  </tbody>
+</table>
 </div>
 
 <h2 id="lessons">Lessons</h2>
@@ -335,24 +359,29 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <thead><tr><th>#</th><th>Lesson</th><th>You learn</th><th>Status</th></tr></thead>
   <tbody>
     <tr><td>0</td><td><strong>Map</strong></td><td>The whole stack and how the pieces connect (this page)</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>1</td><td><strong>Setup</strong> <span class="cost">☁</span></td><td>uv, gcloud profile, ADC, which APIs exist</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>1</td><td><strong>Setup</strong> <span class="cost">☁</span></td><td>uv, gcloud profile, ADC, APIs, quotas</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>2</td><td><strong>First ADK agent</strong></td><td>Agent, Runner, Session, State, Events; <code>adk web</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>3</td><td><strong>Tools + Google's MCP</strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>4</td><td><strong>A skill (local)</strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code> skill</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>6</td><td><strong>Evaluate</strong></td><td><code>adk eval</code>, evalsets, built from kc-okf's 15 questions</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>4</td><td><strong>A skill (local)</strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users with a persona</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>7</td><td><strong>Deploy the agent to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>8</td><td><strong>Identity and IAM</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; callbacks as guardrails</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>9</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry entries and metadata; publish the skill to Skill Registry and load it from there; register the MCP server and use it from 3 clients</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>10</td><td><strong>Agent Gateway</strong> <span class="cost">☁</span></td><td>Egress policy per agent principal; allow <code>lookup_entry</code>, block <code>modify_entry</code>; permissive vs ENFORCED; Model Armor</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>11</td><td><strong>A2A</strong> <span class="cost">☁</span></td><td>Agent card, <code>RemoteA2aAgent</code>; a front-desk agent finds ours in the Registry and calls it</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>8</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs every tool call and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>9</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry metadata; skill loaded from Skill Registry; MCP server used from 3 clients; optional Claude Code plugin; sharing</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>10</td><td><strong>Agent Gateway + governance</strong> <span class="cost">☁</span></td><td>Egress policy per principal; block <code>modify_entry</code> on the network; ENFORCED; Model Armor; content security, semantic governance</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>11</td><td><strong>A2A</strong> <span class="cost">☁</span></td><td>Agent card, <code>RemoteA2aAgent</code>; a front-desk agent finds ours and calls it</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>12</td><td><strong>Memory</strong> <span class="cost">☁</span></td><td>Session vs Memory Bank (optional)</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>13</td><td><strong>CI/CD for three deployables</strong> <span class="cost">☁</span></td><td>A pipeline each for the agent, MCP server and skill; eval gate, triggers, WIF; compared with <code>agents-cli</code> and Terraform</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>14</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; traces, logs, gateway decisions</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>15</td><td><strong>Score, record, clean up</strong> <span class="cost">☁</span></td><td>Setup D against kc-okf's A–C; cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>13</td><td><strong>Observability: Google vs Langfuse</strong> <span class="cost">☁</span></td><td>OpenTelemetry, Cloud Trace, Topology; the same traces in Langfuse; LangSmith compared</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>14</td><td><strong>Optimize</strong> <span class="cost">☁</span></td><td>Online evaluation with AutoRaters; prompt optimizer on eval failures; re-score</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>15</td><td><strong>Three ways to build</strong> <span class="cost">☁</span></td><td>Agent Studio (low-code) vs Managed Agents API (config) vs ADK (code) (optional)</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>16</td><td><strong>CI/CD for three deployables</strong> <span class="cost">☁</span></td><td>A pipeline each for agent, MCP server and skill; eval gate; WIF; update vs re-create; rollback</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>17</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; gateway decisions, threat scanning</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>18</td><td><strong>Score, cost, clean up</strong> <span class="cost">☁</span></td><td>Setup D against kc-okf's A–C; token and cloud cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
   </tbody>
 </table>
 </div>
+
+<p class="diagram-note"><strong>Left out on purpose:</strong> RAG Engine and Vector Search (our data is a structured table), Code Execution (we run SQL, not Python), CodeMender and AI Content Detection (not about data agents). Details are in <a href="docs/lesson-plan.md">docs/lesson-plan.md</a>.</p>
 
 <h2 id="glossary">Glossary</h2>
 <p class="lede">Every term used here, in one line, with a .NET or SQL Server comparison. The full version is <a href="docs/glossary.md">docs/glossary.md</a>.</p>
@@ -395,6 +424,8 @@ const G = [
  ["Session","One conversation's events plus its state","HttpContext.Session"],
  ["State","Shared key-value data; the user:, app: and temp: prefixes set the scope","Session or app cache"],
  ["Event","One recorded step (message, tool call, tool result)","An audit-log row"],
+ ["ADK plugin","Registered once; its callbacks run for every model and tool call in the app","Global middleware"],
+ ["Tool confirmation","ADK pauses before a tool runs and waits for a human OK","Approval step"],
  ["Callback","A hook before or after a model or tool call, used to log, block or change it","Middleware / action filters"],
  ["Artifact (ADK)","A file saved or loaded during a session","A blob attached to the session"],
  ["adk web / run / api_server","Local chat UI, terminal chat, local REST server","dotnet run + Swagger"],
@@ -413,6 +444,8 @@ const G = [
  ["Progressive disclosure","The agent sees only skill summaries until it needs the full text","Lazy loading"],
  ["Skill Registry","Private, versioned store for skills shared across agents (Preview)","Private NuGet feed"],
  ["agent-platform-skill-registry","Google's skill for uploading and managing skills in Skill Registry","A CLI for the feed"],
+ ["Claude Code plugin","Bundle of skills, MCP configs, commands and hooks, shared via Git marketplaces","VS Code extension pack"],
+ ["Gemini CLI extension","Google's equivalent bundle for Gemini CLI","Same idea, other tool"],
  ["Agents talking to agents"],
  ["A2A","Agent2Agent protocol: one agent calls another over HTTP","gRPC between services"],
  ["Agent card","JSON at /.well-known/agent-card.json: name, skills, endpoint, auth","OpenAPI / WSDL"],
@@ -425,6 +458,11 @@ const G = [
  ["Principal","Anything IAM roles can be granted to","A SQL login"],
  ["Agent Registry","Catalog of agents and MCP servers with their metadata","Service registry / NuGet feed"],
  ["Agent metadata","Name, version, framework, capabilities, endpoint, agent card","A .nuspec"],
+ ["Agent Studio","Low-code visual canvas for designing agents","Logic Apps designer"],
+ ["Model Garden","Gemini, partner (Claude, Grok, Mistral) and open models","Engine marketplace"],
+ ["Content security","Monitor and filter agent inputs and outputs","Output encoding + DLP"],
+ ["Semantic governance","Rules about meaning, e.g. never reveal city-level data","Row-level security by meaning"],
+ ["AI threat scanning","Real-time threat detection for agent systems","Defender for Cloud"],
  ["Managed Agents","Agents defined on the platform itself; they can mount registered skills","A hosted low-code app"],
  ["Agent Gateway","Governs agent traffic; Agent Runtime routes outbound calls through it","API Management"],
  ["Egress vs client-to-agent","Calls out of an agent vs calls into it","Outbound vs inbound firewall rules"],
@@ -439,6 +477,16 @@ const G = [
  ["Context set","Curated agent-facing pages in Knowledge Catalog","A wiki space for agents"],
  ["OKF","Open Knowledge Format: Markdown + YAML frontmatter for agents","A documentation file format"],
  ["kcmd","CLI that pulls and pushes catalog context, and serves it over MCP","sqlpackage for catalog docs"],
+ ["Evaluate, observe, optimize"],
+ ["Offline evaluation","Score against a fixed test set","Regression suite"],
+ ["Simulated evaluation","An LLM plays the user (with a persona) for several turns","Smart scripted load test"],
+ ["AutoRater / LLM-as-judge","A model scores answers against a rubric","Code review bot"],
+ ["Online evaluation","Judges score live traffic continuously","Synthetic monitoring"],
+ ["Prompt optimizer","Proposes better instructions from failures","Index tuning advisor"],
+ ["Topology","Graph of the agent and everything it calls","Application Map"],
+ ["Span / trace","A trace is one request; a span is one step in it","A call-tree row"],
+ ["LangSmith","LangChain's hosted tracing, eval and prompt tool","Third-party APM"],
+ ["Langfuse","Open-source, self-hostable LangSmith alternative","Self-hosted Seq/Grafana"],
  ["Delivery and operations"],
  ["ADC","How Google libraries find credentials (you locally, the agent when deployed)","DefaultAzureCredential"],
  ["Cloud Build","CI/CD runner driven by cloudbuild.yaml","Azure Pipelines"],
@@ -447,6 +495,8 @@ const G = [
  ["Artifact Registry","Container and package store","Azure Container Registry"],
  ["Terraform","Infrastructure as code","Bicep / ARM"],
  ["Cloud Trace / Logging","Spans for every model and tool call, plus logs (OpenTelemetry)","Application Insights"],
+ ["Cloud Run invoker / ID token","Role to call a private Cloud Run service; callers send a Google ID token","App role + bearer token"],
+ ["Update vs re-create","Redeploy in place vs new resource; may change URL and identity","In-place deploy vs new slot"],
  ["Staging bucket","Where a deploy uploads the packaged agent","Build drop folder"]
 ];
 const tb = document.querySelector('#gl tbody');

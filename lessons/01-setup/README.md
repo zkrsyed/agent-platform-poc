@@ -161,7 +161,18 @@ uv run python -c "from google import genai; c = genai.Client(vertexai=True, proj
 
 ## Step 7. Look in the console (optional, 2 minutes)
 
-Open **APIs & Services → Enabled APIs & services** for `kc-okf-poc-261122`. Click **Vertex AI API** (it may be renamed Agent Platform API) and look at the **Metrics** tab. Within a few minutes you should see the request from Step 6. This is the first place your agent's traffic will show up.
+The API's page is **not** on the "Welcome to Gemini Platform" home page. That page is the product console. The API page lives under **APIs & Services**. Go there directly:
+
+https://console.cloud.google.com/apis/api/aiplatform.googleapis.com/metrics?project=kc-okf-poc-261122
+
+Or click through: ☰ menu → **APIs & Services** → **Enabled APIs & services**, then search for `aiplatform`. Its display name may be "Vertex AI API" or a new Agent Platform name, but the service name `aiplatform.googleapis.com` hasn't changed (**verified** in Step 3).
+
+On the **Metrics** tab, within a few minutes you should see the request from Step 6, broken down by method (`GenerateContent`). This is the first place your agent's traffic shows up.
+
+| Console place | What it is | .NET comparison |
+|---|---|---|
+| **Gemini Platform home** (where you land) | The product UI: Agent Studio, models, agents, guides | Azure AI Foundry portal |
+| **APIs & Services → the API page** | The switch that turns the service on, plus its traffic, errors and quotas | Resource provider + API metrics in the Azure portal |
 
 ---
 

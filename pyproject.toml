@@ -1,0 +1,8 @@
+[project]
+name = "agent-platform-poc"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk[a2a,agent-identity,eval,mcp]>=2.15.0",
+    "google-cloud-aiplatform[adk,agent-engines]>=1.112",
+]

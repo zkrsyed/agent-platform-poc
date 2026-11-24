@@ -141,7 +141,7 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
 
   <rect class="bx dev" x="30" y="390" width="210" height="80"/>
   <text class="t" x="44" y="414">Cloud Build</text>
-  <text class="s" x="44" y="434">cloudbuild.yaml</text>
+  <text class="s" x="44" y="434">agent · MCP server · skill</text>
   <text class="s" x="44" y="452">eval gate → deploy</text>
 
   <rect class="bx gv" x="30" y="500" width="210" height="70"/>
@@ -179,19 +179,19 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <!-- registry -->
   <rect class="bx cl" x="630" y="190" width="160" height="130"/>
   <text class="t" x="644" y="214">Agent Registry</text>
-  <text class="s" x="644" y="236">agent entry</text>
-  <text class="s" x="644" y="254">metadata: version,</text>
-  <text class="s" x="644" y="270">framework, endpoint</text>
-  <text class="s" x="644" y="288">agent card (A2A)</text>
-  <text class="s" x="644" y="306">MCP server entries</text>
+  <text class="s" x="644" y="236">agents (auto)</text>
+  <text class="s" x="644" y="254">MCP servers</text>
+  <text class="s" x="644" y="270">skills (Preview)</text>
+  <text class="s" x="644" y="288">metadata, versions,</text>
+  <text class="s" x="644" y="306">agent card (A2A)</text>
 
   <!-- gateway -->
-  <rect class="bx gv" x="630" y="340" width="160" height="100" stroke-dasharray="6 4"/>
+  <rect class="bx gv" x="630" y="340" width="160" height="100"/>
   <text class="t" x="644" y="364">Agent Gateway</text>
-  <text class="s" x="644" y="384">governs agent → tool</text>
-  <text class="s" x="644" y="400">and agent → agent</text>
-  <text class="s" x="644" y="418">+ Model Armor</text>
-  <text class="s" x="644" y="432">(optional)</text>
+  <text class="s" x="644" y="384">egress policy per</text>
+  <text class="s" x="644" y="400">agent principal</text>
+  <text class="s" x="644" y="416">rule on mcp.toolName</text>
+  <text class="s" x="644" y="432">+ Model Armor</text>
 
   <!-- bottom platform row -->
   <rect class="bx cl" x="310" y="470" width="150" height="70"/>
@@ -200,18 +200,22 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <text class="s" x="324" y="530">location global</text>
 
   <rect class="bx cl" x="470" y="470" width="140" height="70"/>
-  <text class="t" x="484" y="494">Trace · Logging</text>
-  <text class="s" x="484" y="514">a span per model</text>
-  <text class="s" x="484" y="530">and tool call</text>
+  <text class="t" x="484" y="494">Skill Registry</text>
+  <text class="s" x="484" y="514">ga4-context skill,</text>
+  <text class="s" x="484" y="530">versioned (Preview)</text>
 
   <rect class="bx gv" x="630" y="470" width="160" height="70"/>
   <text class="t" x="644" y="494">IAM</text>
   <text class="s" x="644" y="514">roles granted to</text>
   <text class="s" x="644" y="530">the agent principal</text>
 
-  <rect class="bx cl" x="310" y="560" width="300" height="60"/>
-  <text class="t" x="324" y="584">Staging bucket (Cloud Storage)</text>
-  <text class="s" x="324" y="602">packaged agent uploaded at deploy</text>
+  <rect class="bx cl" x="310" y="560" width="150" height="60"/>
+  <text class="t" x="324" y="584">Staging bucket</text>
+  <text class="s" x="324" y="602">packaged agent</text>
+
+  <rect class="bx cl" x="470" y="560" width="140" height="60"/>
+  <text class="t" x="484" y="584">Trace · Logging</text>
+  <text class="s" x="484" y="602">spans, gateway logs</text>
 
   <rect class="bx cl" x="630" y="560" width="160" height="60"/>
   <text class="t" x="644" y="584">Cloud Run</text>
@@ -261,22 +265,26 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <path class="ln" d="M790 400 H820 V475 H850" marker-end="url(#ah)"/>
   <!-- agent to gemini -->
   <path class="ln" d="M385 440 V470" marker-end="url(#ah)"/>
+  <!-- skill loaded from Skill Registry -->
+  <path class="ln dash" d="M540 470 V440" marker-end="url(#ah)"/>
   <!-- cloud run hosts OKF MCP -->
   <path class="ln dash" d="M790 590 H835 V395 H850" marker-end="url(#ah)"/>
 
   <!-- lesson numbers -->
   <g><circle class="num" cx="232" cy="78" r="11"/><text class="numt" x="232" y="82" text-anchor="middle">2</text></g>
   <g><circle class="num" cx="232" cy="208" r="11"/><text class="numt" x="232" y="212" text-anchor="middle">6</text></g>
-  <g><circle class="num" cx="232" cy="398" r="11"/><text class="numt" x="232" y="402" text-anchor="middle">11</text></g>
+  <g><circle class="num" cx="232" cy="398" r="11"/><text class="numt" x="232" y="402" text-anchor="middle">13</text></g>
   <g><circle class="num" cx="602" cy="198" r="11"/><text class="numt" x="602" y="202" text-anchor="middle">7</text></g>
   <g><circle class="num" cx="586" cy="352" r="11"/><text class="numt" x="586" y="356" text-anchor="middle">8</text></g>
   <g><circle class="num" cx="782" cy="198" r="11"/><text class="numt" x="782" y="202" text-anchor="middle">9</text></g>
-  <g><circle class="num" cx="792" cy="48" r="11"/><text class="numt" x="792" y="52" text-anchor="middle">9</text></g>
+  <g><circle class="num" cx="782" cy="348" r="11"/><text class="numt" x="782" y="352" text-anchor="middle">10</text></g>
+  <g><circle class="num" cx="792" cy="48" r="11"/><text class="numt" x="792" y="52" text-anchor="middle">11</text></g>
   <g><circle class="num" cx="1062" cy="198" r="11"/><text class="numt" x="1062" y="202" text-anchor="middle">3</text></g>
   <g><circle class="num" cx="1062" cy="318" r="11"/><text class="numt" x="1062" y="322" text-anchor="middle">5</text></g>
   <g><circle class="num" cx="1062" cy="548" r="11"/><text class="numt" x="1062" y="552" text-anchor="middle">4</text></g>
-  <g><circle class="num" cx="586" cy="402" r="11"/><text class="numt" x="586" y="406" text-anchor="middle">10</text></g>
-  <g><circle class="num" cx="602" cy="478" r="11"/><text class="numt" x="602" y="482" text-anchor="middle">12</text></g>
+  <g><circle class="num" cx="586" cy="402" r="11"/><text class="numt" x="586" y="406" text-anchor="middle">12</text></g>
+  <g><circle class="num" cx="602" cy="478" r="11"/><text class="numt" x="602" y="482" text-anchor="middle">9</text></g>
+  <g><circle class="num" cx="602" cy="568" r="11"/><text class="numt" x="602" y="572" text-anchor="middle">14</text></g>
 </svg>
 </div>
 <p class="diagram-note">Blue circles show the lesson that covers each part. Dashed lines are optional or happen automatically (the Registry entry is created when the agent is deployed, <strong>docs</strong>).</p>
@@ -286,20 +294,34 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
 <ol class="flow">
   <li>You, or the <strong>front-desk agent</strong> via <strong>A2A</strong>, send a question to the agent on <strong>Agent Runtime</strong>.</li>
   <li>The ADK <strong>Runner</strong> loads the <strong>session</strong> (and <strong>Memory Bank</strong>), then sends <strong>Gemini</strong> the instruction, the tool list and the one-line summaries of the skills.</li>
-  <li>Gemini decides to load the <strong>skill</strong> <code>ga4-context</code>, which holds rules such as "no city-level output" and "always filter on the partition".</li>
-  <li>It calls <strong>Knowledge Catalog MCP</strong> to look up the table. The call runs <em>as the agent's own identity</em>, passes through <strong>Agent Gateway</strong> and <strong>Model Armor</strong> if they are set up, and is allowed by <strong>IAM</strong>.</li>
-  <li>It calls <strong>our OKF MCP server</strong> on Cloud Run for a playbook page.</li>
+  <li>Gemini decides to load the <strong>skill</strong> <code>ga4-context</code> from <strong>Skill Registry</strong>. The skill holds rules such as "no city-level output" and "always filter on the partition".</li>
+  <li>It calls <strong>Knowledge Catalog MCP</strong> to look up the table, <em>as the agent's own identity</em>. <strong>Agent Gateway</strong> checks the egress policy ("may this principal call this tool?"), <strong>Model Armor</strong> checks the content, and then <strong>IAM</strong> allows the call.</li>
+  <li>It calls <strong>our OKF MCP server</strong> on Cloud Run for a playbook page. The agent found that server in <strong>Agent Registry</strong>.</li>
   <li>It runs the SQL with the <strong>BigQuery</strong> tool, checks the result and answers.</li>
-  <li>Each step is an <strong>event</strong> in the session and a <strong>span</strong> in Cloud Trace.</li>
+  <li>Each step is an <strong>event</strong> in the session and a <strong>span</strong> in Cloud Trace. Gateway allow and deny decisions appear in the logs.</li>
 </ol>
 
 <h2 id="concepts">Key ideas at a glance</h2>
+<p class="lede">The big idea: an <strong>agent</strong>, an <strong>MCP server</strong> and a <strong>skill</strong> are three separate things. Each one is built, deployed, versioned and registered on its own. <strong>Identity</strong> says who is calling, <strong>IAM</strong> and <strong>Agent Gateway</strong> decide what that caller may use, and the <strong>Registry</strong> is where everyone finds them.</p>
+<div class="table-wrap" style="margin-bottom:16px">
+<table>
+  <thead><tr><th></th><th>Agent</th><th>MCP server</th><th>Skill</th></tr></thead>
+  <tbody>
+    <tr><td><strong>What</strong></td><td>Reasoning loop + instruction + tools</td><td>Service offering tools, resources, prompts</td><td>Folder of know-how (<code>SKILL.md</code>)</td></tr>
+    <tr><td><strong>Ours</strong></td><td><code>agents/ga4_guide</code></td><td><code>mcp_servers/okf</code></td><td><code>skills/ga4-context</code></td></tr>
+    <tr><td><strong>Runs on</strong></td><td>Agent Runtime</td><td>Cloud Run</td><td>Nothing: an agent loads it</td></tr>
+    <tr><td><strong>Found in</strong></td><td>Agent Registry (auto)</td><td>Agent Registry (we register it)</td><td>Skill Registry (Preview)</td></tr>
+    <tr><td><strong>.NET</strong></td><td>A web app</td><td>A Web API</td><td>A NuGet content package</td></tr>
+  </tbody>
+</table>
+</div>
 <div class="cards">
   <div class="card" style="--c:var(--dev)"><h3>ADK</h3><p>The framework you write the agent in: agent, tools, runner, sessions, callbacks, eval.</p><span class="net">≈ ASP.NET for agents</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>Agent Runtime</h3><p>Managed hosting for agents, with managed sessions and Memory Bank. Formerly Agent Engine.</p><span class="net">≈ App Service</span></div>
   <div class="card" style="--c:var(--gov)"><h3>Agent Identity</h3><p>Each agent gets its own <code>principal://</code> ID that you grant IAM roles to. No shared service-account keys.</p><span class="net">≈ Managed Identity</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>Agent Registry</h3><p>A catalog of agents and MCP servers, with their metadata, so other agents and people can find them.</p><span class="net">≈ service registry / NuGet feed</span></div>
-  <div class="card" style="--c:var(--gov)"><h3>Agent Gateway + Model Armor</h3><p>Governs and inspects traffic from agents to tools and to other agents, and filters prompts and responses.</p><span class="net">≈ API Management + WAF</span></div>
+  <div class="card" style="--c:var(--gov)"><h3>Agent Gateway + Model Armor</h3><p>All of the agent's outbound calls pass through it. Policies say which agent principal may call which MCP tool (a CEL rule on <code>mcp.toolName</code>), and Model Armor filters the content.</p><span class="net">≈ API Management + WAF, per identity</span></div>
+  <div class="card" style="--c:var(--cloud)"><h3>Skill Registry</h3><p>A private store for skills with versions (Preview). Agents load a skill from it instead of shipping it with their own code.</p><span class="net">≈ private NuGet feed</span></div>
   <div class="card" style="--c:var(--tool)"><h3>MCP</h3><p>The standard way to plug tools and data into any agent. We use Google's hosted server and build one of our own.</p><span class="net">≈ ODBC for agent tools</span></div>
   <div class="card" style="--c:var(--tool)"><h3>Skill</h3><p>A <code>SKILL.md</code> folder of know-how that the agent loads only when it needs it (progressive disclosure).</p><span class="net">≈ a runbook opened on demand</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>A2A</h3><p>Agent-to-agent protocol. An <em>agent card</em> describes what an agent can do and where to reach it.</p><span class="net">≈ gRPC + OpenAPI between services</span></div>
@@ -316,16 +338,18 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
     <tr><td>1</td><td><strong>Setup</strong> <span class="cost">☁</span></td><td>uv, gcloud profile, ADC, which APIs exist</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>2</td><td><strong>First ADK agent</strong></td><td>Agent, Runner, Session, State, Events; <code>adk web</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>3</td><td><strong>Tools + Google's MCP</strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>4</td><td><strong>A skill</strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code> skill</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>4</td><td><strong>A skill (local)</strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code> skill</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>6</td><td><strong>Evaluate</strong></td><td><code>adk eval</code>, evalsets, built from kc-okf's 15 questions</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>7</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>8</td><td><strong>Identity, IAM, Gateway</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; Agent Gateway, Model Armor; callbacks as guardrails</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>9</td><td><strong>Registry + A2A</strong> <span class="cost">☁</span></td><td>Registry entries, agent metadata, agent card; a front-desk agent calls ours</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>10</td><td><strong>Memory</strong> <span class="cost">☁</span></td><td>Session vs Memory Bank (optional)</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>11</td><td><strong>CI/CD</strong> <span class="cost">☁</span></td><td>Cloud Build, eval gate, triggers, WIF; compared with <code>agents-cli</code> and Terraform</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>12</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; traces, logs; optional Gemini Enterprise publish</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>13</td><td><strong>Score, record, clean up</strong> <span class="cost">☁</span></td><td>Setup D against kc-okf's A–C; cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>7</td><td><strong>Deploy the agent to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>8</td><td><strong>Identity and IAM</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; callbacks as guardrails</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>9</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry entries and metadata; publish the skill to Skill Registry and load it from there; register the MCP server and use it from 3 clients</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>10</td><td><strong>Agent Gateway</strong> <span class="cost">☁</span></td><td>Egress policy per agent principal; allow <code>lookup_entry</code>, block <code>modify_entry</code>; permissive vs ENFORCED; Model Armor</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>11</td><td><strong>A2A</strong> <span class="cost">☁</span></td><td>Agent card, <code>RemoteA2aAgent</code>; a front-desk agent finds ours in the Registry and calls it</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>12</td><td><strong>Memory</strong> <span class="cost">☁</span></td><td>Session vs Memory Bank (optional)</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>13</td><td><strong>CI/CD for three deployables</strong> <span class="cost">☁</span></td><td>A pipeline each for the agent, MCP server and skill; eval gate, triggers, WIF; compared with <code>agents-cli</code> and Terraform</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>14</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; traces, logs, gateway decisions</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>15</td><td><strong>Score, record, clean up</strong> <span class="cost">☁</span></td><td>Setup D against kc-okf's A–C; cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
   </tbody>
 </table>
 </div>
@@ -387,6 +411,8 @@ const G = [
  ["FastMCP","Python library for writing an MCP server","Minimal APIs"],
  ["Agent Skill / SKILL.md","Know-how folder (instructions, references, scripts) loaded on demand with SkillToolset","A runbook opened when needed"],
  ["Progressive disclosure","The agent sees only skill summaries until it needs the full text","Lazy loading"],
+ ["Skill Registry","Private, versioned store for skills shared across agents (Preview)","Private NuGet feed"],
+ ["agent-platform-skill-registry","Google's skill for uploading and managing skills in Skill Registry","A CLI for the feed"],
  ["Agents talking to agents"],
  ["A2A","Agent2Agent protocol: one agent calls another over HTTP","gRPC between services"],
  ["Agent card","JSON at /.well-known/agent-card.json: name, skills, endpoint, auth","OpenAPI / WSDL"],
@@ -399,7 +425,12 @@ const G = [
  ["Principal","Anything IAM roles can be granted to","A SQL login"],
  ["Agent Registry","Catalog of agents and MCP servers with their metadata","Service registry / NuGet feed"],
  ["Agent metadata","Name, version, framework, capabilities, endpoint, agent card","A .nuspec"],
- ["Agent Gateway","Governs traffic between agents, tools and other agents","API Management"],
+ ["Managed Agents","Agents defined on the platform itself; they can mount registered skills","A hosted low-code app"],
+ ["Agent Gateway","Governs agent traffic; Agent Runtime routes outbound calls through it","API Management"],
+ ["Egress vs client-to-agent","Calls out of an agent vs calls into it","Outbound vs inbound firewall rules"],
+ ["Egress policy","Lets one agent principal call a destination (roles/iap.egressor)","A firewall rule tied to an identity"],
+ ["CEL condition","Rule such as mcp.toolName == \"lookup_entry\" to allow or deny single MCP tools","A WHERE clause on permissions"],
+ ["Permissive vs ENFORCED","Log what would be blocked vs actually block it","Audit mode vs deny mode"],
  ["Model Armor","Guardrails on prompts and responses; can run on Agent Gateway","A WAF for prompts"],
  ["Gemini Enterprise (app)","End-user app where agents can be published to colleagues","Teams app store"],
  ["Agent Starter Pack / agents-cli","Templates and CLI that scaffold an agent with CI/CD and Terraform","dotnet new templates"],

@@ -8,6 +8,8 @@ The agent is a **GA4 data guide**. It answers questions about a BigQuery table u
 - **OKF** pages, packaged as an ADK **skill** and also served by **an MCP server we write ourselves**
 - **BigQuery**, so the agent can check its SQL by running it
 
+**The big idea:** an agent, an MCP server and a skill are three separate things you can deploy and register on their own. Agent Identity says who is calling; IAM and **Agent Gateway** decide what that caller may use.
+
 **Start with [`index.html`](index.html)** (open it in a browser). It has the architecture diagram, the glossary and the lesson list. The same content as plain text is in [`docs/lesson-plan.md`](docs/lesson-plan.md) and [`docs/glossary.md`](docs/glossary.md).
 
 ## How this repo is used
@@ -28,8 +30,9 @@ Every claim is labelled:
 index.html            map: diagram, glossary, lessons, status
 docs/                 lesson plan and glossary (markdown)
 lessons/NN-*/         one README per lesson: explanation, code to paste, commands
-agents/ga4_guide/     the ADK agent (agent.py, tools, skills/)
-mcp_servers/okf/      our own MCP server that serves OKF pages
+agents/ga4_guide/     the ADK agent (agent.py, tools)                → Agent Runtime
+mcp_servers/okf/      our own MCP server that serves OKF pages         → Cloud Run + Agent Registry
+skills/ga4-context/   the skill (SKILL.md + references)                → Skill Registry
 eval/                 evalset for `adk eval`
 deploy/               deploy script and cloudbuild.yaml (CI/CD)
 results/              what happened in each lesson, with evidence

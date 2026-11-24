@@ -9,7 +9,7 @@ Each lesson's status goes `planned` → `in progress` → `done`. Each lesson be
 | # | Lesson | You learn | You build / run | Status |
 |---|---|---|---|---|
 | 0 | **Map** | The whole stack and how the pieces connect | Read `index.html` | done |
-| 1 | **Setup** ☁ | uv, gcloud profile, ADC, which APIs exist, quotas | `pyproject.toml`; enable APIs | planned |
+| 1 | **Setup** ☁ | uv, gcloud profile, ADC, which APIs exist, quotas | `pyproject.toml`; enable APIs | in progress |
 | 2 | **First ADK agent** | `Agent`, Runner, Session, State, Events | `agents/ga4_guide/agent.py`; `adk web`, `adk run` | planned |
 | 3 | **Tools + Google's MCP** | Function tools, toolsets, MCP client, remote Knowledge Catalog MCP, BigQuery tool, grounding | Add `McpToolset` for `dataplex.googleapis.com/mcp` and a BigQuery tool | planned |
 | 4 | **A skill (local)** | Agent Skills, `SKILL.md`, progressive disclosure, skill vs MCP vs tool | `skills/ga4-context/` built from the kc-okf OKF pages (plus OKF's `okf-consume`), loaded with `SkillToolset` | planned |

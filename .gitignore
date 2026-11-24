@@ -1,0 +1,30 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+*.key.json
+credentials*.json
+
+# ADK local state
+.adk/
+*.db
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Local-only
+trash/
+.private-strings

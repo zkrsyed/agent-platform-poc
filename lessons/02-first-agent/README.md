@@ -164,7 +164,16 @@ In the UI, pick **ga4_guide** and repeat the three messages. Then explore:
 
 Stop it with `Ctrl+C`.
 
-> Where did the sessions go? `adk web` stores them locally (**guess**: under `.adk/` in SQLite). That folder is git-ignored. On Agent Runtime the managed **Sessions** service replaces it (lesson 8).
+> Where did the sessions go? Into **`agents/ga4_guide/.adk/session.db`**, a SQLite file (**verified**). It's git-ignored. Its tables show state scoping as real storage:
+>
+> | Table | Holds | State prefix |
+> |---|---|---|
+> | `sessions` | One row per conversation; `state` column = session keys (`last_answer`, `times_remembered`) | none |
+> | `user_states` | One row per **user_id**; the `user:` keys, stored *without* the prefix | `user:` |
+> | `app_states` | One row per app | `app:` |
+> | `events` | Every event, as JSON in `event_data` | – |
+>
+> `adk run` and `adk web` use **different user IDs** (`test_user` vs `user` in our run, **verified**). That's why the name you gave in the terminal wasn't known in the web UI. On Agent Runtime the managed **Sessions** service replaces this file (lesson 8).
 
 ## Step 5. Do it yourself: the Runner by hand
 

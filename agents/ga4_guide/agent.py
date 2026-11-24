@@ -30,7 +30,7 @@ def remember_analyst(name: str, team: str, tool_context: ToolContext) -> dict:
 root_agent = Agent(
     name="ga4_guide",
     model=MODEL,
-    # The description is for OTHER agents and registries (lessons 9 and 11), not for this model.
+    # The description is for OTHER agents and registries (lessons 10 and 12), not for this model.
     description=(
         "Answers questions about the GA4 sample table "
         "kc-okf-poc-261122.ga4_sample.events (Google Merchandise Store)."

@@ -2,7 +2,7 @@
 
 **The big idea:** an **agent**, an **MCP server** and a **skill** are three separate things. Each can be built, deployed, versioned and registered on its own. **Agent Identity** says who is calling. **Guardrails** in code (ADK plugins) and on the network (**Agent Gateway**) decide what that caller may do. The **Registry** is where everyone finds them. **Evaluation, tracing and optimization** tell you whether the agent works and how to make it better.
 
-The plan follows Google's four pillars: **Build** (lessons 1–7, 18), **Scale** (8, 13), **Govern** (9–12), **Optimize** (6, 16–17), plus **user experience** (14–15).
+The plan follows Google's four pillars: **Build** (lessons 1–7, 18, 22), **Scale** (8, 13), **Govern** (9–12), **Optimize** (6, 16–17), plus **user experience** (14–15).
 
 Each lesson's status goes `planned` → `in progress` → `done`. Each lesson becomes `lessons/NN-name/README.md` (explanation, code to paste, commands) plus `results/NN-name.md` (what happened, labelled verified / docs / guess). ☁ means the lesson creates cloud resources or costs money, so we ask before running it.
 
@@ -30,6 +30,7 @@ Each lesson's status goes `planned` → `in progress` → `done`. Each lesson be
 | 19 | **CI/CD for the deployables** ☁ | A pipeline per deployable (orchestrator, policy agent, MCP server, skill), eval gate, triggers, WIF; update vs re-create; rollback; `agents-cli` and Terraform compared | `deploy/cloudbuild-*.yaml` with triggers on GitHub push | planned |
 | 20 | **Tour: what ended up where** | Console and gcloud views of every piece: Runtime, Registry, IAM, Gateway decisions, traces, Topology, threat scanning, Cloud Run, buckets, builds | A checklist with screenshots | planned |
 | 21 | **Score, cost, clean up** ☁ | Comparison with kc-okf setups A–C; single agent vs multi-agent; token and cloud cost; quotas | Run `score.py` as setup D (and E for multi-agent), write up results, delete resources | planned |
+| 22 | **Same agent in LangGraph** (optional) | LangChain/LangGraph basics: graph, nodes, state, checkpointer; how they map to ADK's Agent, Runner, Session and State; where each framework is stronger; the same Gemini model, project and Langfuse | `agents_langgraph/ga4_guide/`: the lesson 3 agent (Knowledge Catalog MCP + BigQuery) rebuilt in LangGraph and run locally; same 5 questions scored against ADK. Deploy later with the same Agent Runtime lessons (`LanggraphAgent` in the Python SDK, **docs**) | planned (take it after lesson 5; no renumbering needed) |
 
 ## The three deployables
 

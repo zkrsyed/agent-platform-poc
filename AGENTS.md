@@ -16,3 +16,7 @@ This is a **teaching** POC. The human is learning Google's agent stack (ADK, Age
 - GCP project: `kc-okf-poc-261122` (shared with the kc-okf POC, which holds the GA4 table and the Knowledge Catalog context set). gcloud profile: `kc-okf`.
 - Data: `kc-okf-poc-261122.ga4_sample.events`. Context: the published context set and OKF export from kc-okf step 4.
 - Related repo: https://github.com/zkrsyed/kc-okf (its `AGENTS.md` lists the verified facts).
+
+## Learning journal
+
+`index.html` has a "Learning journal" section. After each lesson, and during a lesson when something worth keeping comes up, add or extend that lesson's `<details class="lesson">` block: what we did, key ideas, verified findings, and the learner's questions with plain-language answers (`<div class="qa">`). Use SVG diagrams when a picture helps. Keep the newest lesson open.

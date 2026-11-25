@@ -298,16 +298,80 @@ uv run python scripts/runner_demo.py
 - The **new** session starts with `user:analyst_name` and `user:team` but **not** `times_remembered` or `last_answer`. That is state scoping in action (**verified** with an offline test against ADK 2.15 before writing this lesson).
 - `InMemorySessionService` forgets everything when the script ends. Run it twice and see.
 
+## Step 5b. Watch the same run in Langfuse
+
+The script prints events as text. **Langfuse** shows the same run as a picture: a tree of **spans** (one per agent step, model call and tool call) with inputs, outputs, tokens and timings. Lesson 16 does this properly for the deployed agents. Here we only point the local agent at your own Langfuse.
+
+How it works (**verified** in ADK 2.15's `google/adk/telemetry/setup.py`): ADK already creates OpenTelemetry spans. If the standard `OTEL_EXPORTER_OTLP_*` environment variables are set, `maybe_set_otel_providers()` sends them to that address. Langfuse accepts OpenTelemetry at `/api/public/otel` (**docs**; on this server `…/v1/traces` answers `401` without keys, so the endpoint exists, **verified**). Nothing new to install.
+
+| Idea | One line | .NET comparison |
+|---|---|---|
+| **Span** | One timed step with a start, end and attributes | One dependency call in Application Insights |
+| **Trace** | All spans of one request, as a tree | One end-to-end transaction |
+| **OpenTelemetry (OTel)** | The open standard for creating and sending spans | `System.Diagnostics.Activity` + OTel exporter |
+| **OTLP endpoint** | The address that receives the spans | The Application Insights connection string |
+
+**1. Get keys.** Open Langfuse (`http://localhost:3000` on the server; from another computer, use the same SSH tunnel as Step 4 with `-L 3000:localhost:3000`). Create a project called `agent-platform-poc`, then **Settings → API Keys → Create**. Copy the public key (`pk-lf-…`) and the secret key (`sk-lf-…`).
+
+**2. Turn the two keys into one login string** (put your keys in, keep the colon):
+
+```bash
+echo -n "pk-lf-XXXX:sk-lf-XXXX" | base64 -w0; echo
+```
+
+**3. Add three lines to `agents/ga4_guide/.env`** (git-ignored, so the keys stay private). Paste the output of step 2 after `Basic%20`:
+
+```
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:3000/api/public/otel/v1/traces
+OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic%20PASTE_HERE
+OTEL_SERVICE_NAME=ga4_guide
+```
+
+- We set only the **TRACES** address, not the general `OTEL_EXPORTER_OTLP_ENDPOINT`, because Langfuse takes traces, not metrics or logs (**docs**).
+- `%20` is a space. The OTel spec wants it written like that in this variable.
+
+**4. Switch tracing on in the script.** In `scripts/runner_demo.py`, add this import next to the other ADK imports:
+
+```python
+from google.adk.telemetry.setup import maybe_set_otel_providers  # noqa: E402
+```
+
+and make this the first line inside `main()`:
+
+```python
+    maybe_set_otel_providers()  # sends spans to the OTEL_EXPORTER_OTLP_* address in .env, if set
+```
+
+**5. Run it again:**
+
+```bash
+uv run python scripts/runner_demo.py
+```
+
+Then open Langfuse → your project → **Tracing**. **Look for** (span names are a **guess** until we see them):
+- one trace per turn, so two traces for the two messages
+- inside the turn-1 trace: the agent span → a Gemini call → `remember_analyst` → a second Gemini call
+- the prompt the model really received, with `{user:analyst_name?}` already filled in, and the token counts
+- turn 2 has no tool span
+
+**`adk web` too:** `adk web` sets up the same exporter by itself when the variables are set (**verified** in `google/adk/cli/api_server.py`). Load the `.env` into the shell first, so they are there when it starts:
+
+```bash
+set -a && source agents/ga4_guide/.env && set +a && uv run adk web agents
+```
+
+> ADK puts prompts and replies into the spans by default (`ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS`, **verified** in `telemetry/tracing.py`). That's what we want in a private Langfuse. For a shared or production tracing backend, think about whether prompts may contain personal data.
+
 ## Step 6. Commit your work
 
 ```bash
 git status --short
 ```
 
-**Look for:** `agents/ga4_guide/agent.py`, `__init__.py`, `.gitignore` and `scripts/runner_demo.py` are listed, and **`.env` is not** (the root `.gitignore` excludes it).
+**Look for:** `scripts/runner_demo.py` is listed, and **`.env` is not** (the root `.gitignore` excludes it; it now holds your Langfuse keys too). The agent files were already committed with the plan update.
 
 ```bash
-git add agents scripts && git commit -m "Lesson 2: first ADK agent (ga4_guide) and runner demo"
+git add scripts && git commit -m "Lesson 2: runner demo"
 ```
 
 ---

@@ -70,6 +70,16 @@ input[type=search]{width:100%;max-width:420px;padding:8px 12px;border:1px solid 
 .grp td{background:var(--accent-soft);font-weight:600;font-size:.85rem}
 .labels td:first-child{white-space:nowrap}
 footer{margin-top:48px;color:var(--muted);font-size:.85rem}
+details.lesson{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:12px 0;padding:0 16px}
+details.lesson>summary{cursor:pointer;padding:14px 0;font-weight:600;font-size:1.05rem;list-style-position:outside}
+details.lesson[open]>summary{border-bottom:1px solid var(--line);margin-bottom:12px}
+details.lesson h4{margin:20px 0 8px;font-size:.95rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+details.lesson ul{padding-left:20px;margin:6px 0}
+details.lesson li{margin:4px 0}
+.qa{border-left:3px solid var(--accent);background:var(--bg);border-radius:0 8px 8px 0;padding:8px 12px;margin:8px 0}
+.qa .q{font-weight:600;margin:0 0 4px}
+.qa p{margin:4px 0}
+.when{color:var(--muted);font-size:.85rem;font-weight:400}
 @media (max-width:640px){ th:nth-child(3),td:nth-child(3){display:none} }
 </style>
 </head>
@@ -79,7 +89,7 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
   <h1>Agent Platform POC</h1>
   <p class="lede">Build one ADK agent and run it on Google Cloud. Then go and look at everything that appears around it: its <strong>identity</strong>, its <strong>registry entry</strong>, the <strong>MCP servers</strong> and <strong>skill</strong> it uses, the <strong>A2A</strong> link to a second agent, and the <strong>CI/CD</strong> pipeline that deploys it. It uses the GA4 sample table and the Knowledge Catalog / OKF context from the <a href="https://github.com/zkrsyed/kc-okf">kc-okf POC</a>.</p>
   <nav class="toc">
-    <a href="#map">Architecture</a><a href="#flow">Request flow</a><a href="#concepts">Key ideas</a><a href="#lessons">Lessons</a><a href="#glossary">Glossary</a><a href="#labels">Labels</a>
+    <a href="#map">Architecture</a><a href="#flow">Request flow</a><a href="#concepts">Key ideas</a><a href="#lessons">Lessons</a><a href="#journal">Learning journal</a><a href="#glossary">Glossary</a><a href="#labels">Labels</a>
   </nav>
 </header>
 
@@ -347,7 +357,7 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
 <h3 style="margin:24px 0 8px">Guardrails live in two places</h3>
 <div class="table-wrap">
 <table>
-  <thead><tr><th></th><th>ADK plugin (in code, lesson 8)</th><th>Agent Gateway (on the network, lesson 10)</th></tr></thead>
+  <thead><tr><th></th><th>ADK plugin (in code, lesson 9)</th><th>Agent Gateway (on the network, lesson 11)</th></tr></thead>
   <tbody>
     <tr><td><strong>Runs</strong></td><td>Inside the agent process</td><td>Outside, on every outbound call</td></tr>
     <tr><td><strong>Owned by</strong></td><td>Whoever deploys the agent</td><td>Platform or security team</td></tr>
@@ -385,11 +395,179 @@ footer{margin-top:48px;color:var(--muted);font-size:.85rem}
     <tr><td>19</td><td><strong>CI/CD for the deployables</strong> <span class="cost">☁</span></td><td>A pipeline each for agents, MCP server and skill; eval gate; WIF; update vs re-create; rollback</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>20</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; gateway decisions, threat scanning</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>21</td><td><strong>Score, cost, clean up</strong> <span class="cost">☁</span></td><td>Setups D (single) and E (multi-agent) against kc-okf's A–C; cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>22</td><td><strong>Same agent in LangGraph</strong></td><td>The lesson 3 agent rebuilt in LangGraph; mapping to ADK concepts; same Gemini, project and Langfuse; same 5 questions scored (optional, after lesson 5)</td><td><span class="badge planned">planned</span></td></tr>
   </tbody>
 </table>
 </div>
 
 <p class="diagram-note"><strong>Left out on purpose:</strong> RAG Engine and Vector Search (our data is a structured table), Code Execution (we run SQL, not Python), CodeMender and AI Content Detection (not about data agents). Details are in <a href="docs/lesson-plan.md">docs/lesson-plan.md</a>.</p>
+
+<h2 id="journal">Learning journal</h2>
+<p class="lede">What we did in each lesson, what we found, and the questions asked along the way, with the answers in plain words. It's written to be re-read later without the chat. The newest lesson is open; click a lesson to fold it. Evidence for every <strong>verified</strong> claim is in <code>results/</code>.</p>
+
+<details class="lesson">
+<summary>Lesson 0 · The map <span class="when">2026-11-24</span></summary>
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">What makes up Google's "Agent Platform"?</p>
+<p>Gemini Enterprise Agent Platform (the new name for Vertex AI, 2026) has four pillars. <strong>Build</strong>: ADK, Agent Studio, Managed Agents API, Skill Registry, Model Garden. <strong>Scale</strong>: Agent Runtime, Sessions, Memory Bank, Code Execution. <strong>Govern</strong>: Agent Identity, Agent Registry, Agent Gateway, Model Armor. <strong>Optimize</strong>: evaluation, prompt optimizer, traces and Topology (<strong>docs</strong>).</p></div>
+<div class="qa"><p class="q">Is Skill Registry a Google service?</p>
+<p>Yes, a Preview part of Agent Platform: a private, versioned store for skills. An agent loads a skill from it instead of shipping the skill inside its own code (<strong>docs</strong>; lesson 10).</p></div>
+<div class="qa"><p class="q">Can a plugin be deployed or registered by itself too?</p>
+<p>No. An ADK <em>plugin</em> is code that runs inside the agent's process (like middleware). It ships with the agent. Agents, MCP servers and skills are the three things that are deployed and registered on their own.</p></div>
+<div class="qa"><p class="q">Is "Optimize" like LangSmith for LangChain?</p>
+<p>Roughly, yes: evaluation, traces and prompt optimization in one place. The difference is that Google keeps the data in your own GCP project. Langfuse is the open-source, self-hostable equivalent; we compare them in lesson 16.</p></div>
+</details>
+
+<details class="lesson">
+<summary>Lesson 1 · Setup <span class="when">2026-11-24</span></summary>
+<h4>What we did</h4>
+<ul>
+  <li>Selected the <code>kc-okf</code> gcloud profile, checked ADC and its quota project, confirmed the three APIs (<code>aiplatform</code>, <code>dataplex</code>, <code>bigquery</code>) were already on.</li>
+  <li><code>uv init</code> + <code>uv add google-adk[...] google-cloud-aiplatform[...]</code>: 134 packages, ADK 2.15.0, aiplatform 2.10.0.</li>
+  <li>One Gemini call answered <code>setup ok</code> (<code>gemini-3.5-flash</code> on location <code>global</code>).</li>
+</ul>
+<h4>Key ideas</h4>
+<ul>
+  <li><strong>Two logins:</strong> <code>gcloud auth login</code> is for the CLI; <code>application-default login</code> (ADC) is what libraries such as ADK use. Like <code>az login</code> vs <code>DefaultAzureCredential</code>.</li>
+  <li><strong>Quota project:</strong> the project that pays for, and is rate-limited on, library calls.</li>
+  <li><strong>APIs are switched on per project.</strong> Each later lesson turns on only what it needs, so you see which feature needs which service.</li>
+  <li><strong>Google Cloud path, not an API key</strong>, because Agent Identity, IAM and audit logs only exist on that path.</li>
+</ul>
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Where is the "Vertex AI API"? The console home page doesn't show it.</p>
+<p>The "Welcome to Gemini Platform" page is the product console. The API switch and its traffic graphs live under <strong>APIs &amp; Services → Enabled APIs</strong>, as <code>aiplatform.googleapis.com</code>. Its Metrics tab showed our <code>GenerateContent</code> call.</p></div>
+</details>
+
+<details class="lesson" open>
+<summary>Lesson 2 · First ADK agent <span class="when">2026-11-24 → in progress</span></summary>
+<h4>What we did</h4>
+<ul>
+  <li><code>adk create</code> made <code>agents/ga4_guide/</code>; we replaced <code>agent.py</code> with an agent that has one tool, <code>remember_analyst</code>, and <code>output_key="last_answer"</code>.</li>
+  <li>Chatted with it in the terminal (<code>adk run</code>) and in the browser dev UI (<code>adk web</code>): Events, State, Trace and the agent graph.</li>
+  <li>Opened the sessions file <code>.adk/session.db</code> with <code>sqlite3</code> and read every table.</li>
+  <li>Next: <code>scripts/runner_demo.py</code> (the Runner by hand) and its trace in our own Langfuse.</li>
+</ul>
+
+<h4>The big picture: one agent class, many hosts</h4>
+<div class="diagram">
+<svg viewBox="0 0 1000 330" role="img" aria-labelledby="hosts-title hosts-desc" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <title id="hosts-title">The same agent run by four different hosts</title>
+  <desc id="hosts-desc">adk run, adk web, our runner_demo script and Agent Runtime each create a Runner. Each Runner holds the same root_agent and stores conversations in a different place: a SQLite file, memory, or Google's managed Sessions service. The Runner calls Gemini on every turn.</desc>
+  <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+  <g font-size="13" fill="var(--ink)">
+    <!-- hosts -->
+    <rect x="10" y="10" width="230" height="140" rx="10" fill="var(--dev-soft)" stroke="var(--dev)" stroke-width="1.5"/>
+    <text x="125" y="34" text-anchor="middle" font-weight="700">adk run</text>
+    <text x="125" y="52" text-anchor="middle" fill="var(--muted)">you type in the terminal</text>
+    <rect x="70" y="66" width="110" height="28" rx="14" fill="var(--surface)" stroke="var(--dev)"/><text x="125" y="85" text-anchor="middle" font-weight="600">Runner</text>
+    <text x="125" y="118" text-anchor="middle">stores in: SQLite file</text>
+    <text x="125" y="136" text-anchor="middle" fill="var(--muted)" font-size="12">.adk/session.db · user "test_user"</text>
+
+    <rect x="255" y="10" width="230" height="140" rx="10" fill="var(--dev-soft)" stroke="var(--dev)" stroke-width="1.5"/>
+    <text x="370" y="34" text-anchor="middle" font-weight="700">adk web</text>
+    <text x="370" y="52" text-anchor="middle" fill="var(--muted)">you type in the browser</text>
+    <rect x="315" y="66" width="110" height="28" rx="14" fill="var(--surface)" stroke="var(--dev)"/><text x="370" y="85" text-anchor="middle" font-weight="600">Runner</text>
+    <text x="370" y="118" text-anchor="middle">stores in: SQLite file</text>
+    <text x="370" y="136" text-anchor="middle" fill="var(--muted)" font-size="12">.adk/session.db · user "user"</text>
+
+    <rect x="500" y="10" width="230" height="140" rx="10" fill="var(--dev-soft)" stroke="var(--dev)" stroke-width="1.5"/>
+    <text x="615" y="34" text-anchor="middle" font-weight="700">runner_demo.py</text>
+    <text x="615" y="52" text-anchor="middle" fill="var(--muted)">your own code</text>
+    <rect x="560" y="66" width="110" height="28" rx="14" fill="var(--surface)" stroke="var(--dev)"/><text x="615" y="85" text-anchor="middle" font-weight="600">Runner</text>
+    <text x="615" y="118" text-anchor="middle">stores in: memory</text>
+    <text x="615" y="136" text-anchor="middle" fill="var(--muted)" font-size="12">InMemorySessionService · gone at exit</text>
+
+    <rect x="745" y="10" width="245" height="140" rx="10" fill="var(--cloud-soft)" stroke="var(--cloud)" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="867" y="34" text-anchor="middle" font-weight="700">Agent Runtime (lesson 8)</text>
+    <text x="867" y="52" text-anchor="middle" fill="var(--muted)">other apps call it over HTTP</text>
+    <rect x="812" y="66" width="110" height="28" rx="14" fill="var(--surface)" stroke="var(--cloud)"/><text x="867" y="85" text-anchor="middle" font-weight="600">Runner</text>
+    <text x="867" y="118" text-anchor="middle">stores in: managed Sessions</text>
+    <text x="867" y="136" text-anchor="middle" fill="var(--muted)" font-size="12">always-on server · AdkApp wrapper</text>
+
+    <!-- arrows to agent -->
+    <path d="M125 150 L410 228" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#ah2)"/>
+    <path d="M370 150 L450 228" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#ah2)"/>
+    <path d="M615 150 L540 228" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#ah2)"/>
+    <path d="M867 150 L590 228" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#ah2)" stroke-dasharray="6 4"/>
+    <text x="500" y="196" text-anchor="middle" fill="var(--muted)" font-size="12">each Runner holds the same agent</text>
+
+    <!-- agent -->
+    <rect x="330" y="232" width="340" height="80" rx="10" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="500" y="258" text-anchor="middle" font-weight="700">root_agent = Agent(...)</text>
+    <text x="500" y="278" text-anchor="middle" fill="var(--muted)">name · instruction · tools · output_key</text>
+    <text x="500" y="298" text-anchor="middle" fill="var(--muted)" font-size="12">just a Python object: it doesn't know who runs it</text>
+
+    <!-- gemini -->
+    <rect x="770" y="242" width="200" height="60" rx="10" fill="var(--tool-soft)" stroke="var(--tool)" stroke-width="1.5"/>
+    <text x="870" y="266" text-anchor="middle" font-weight="700">Gemini</text>
+    <text x="870" y="285" text-anchor="middle" fill="var(--muted)" font-size="12">gemini-3.5-flash · global</text>
+    <path d="M670 272 L766 272" stroke="var(--muted)" stroke-width="1.5" fill="none" marker-end="url(#ah2)"/>
+    <text x="718" y="264" text-anchor="middle" fill="var(--muted)" font-size="11">every turn</text>
+    <text x="40" y="272" fill="var(--muted)" font-size="12">Purple = on this server.</text>
+    <text x="40" y="290" fill="var(--muted)" font-size="12">Dashed teal = later, in the cloud.</text>
+  </g>
+</svg>
+</div>
+<p class="diagram-note">The agent is the <em>controller</em>; the Runner is the <em>ASP.NET pipeline</em> that runs it. Whoever creates the Runner decides where conversations are stored. On Agent Runtime, Google's <code>AdkApp</code> wrapper creates the Runner and uses the managed Sessions service (<strong>docs</strong>).</p>
+
+<h4>What the Runner does on each message</h4>
+<ol class="flow">
+  <li>Loads the conversation (session) from its storage.</li>
+  <li>Sends the instruction, the conversation so far and your new message to Gemini.</li>
+  <li>If Gemini asks for a tool (<code>remember_analyst</code>), runs that Python function and sends the result back.</li>
+  <li>Repeats until Gemini gives a final answer.</li>
+  <li>Saves every step as an <strong>event</strong>, and every state change with it.</li>
+  <li>Hands each event to whoever called it, as it happens (terminal, browser, your script).</li>
+</ol>
+
+<h4>Where the data lives: state scopes are real tables</h4>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Key in code</th><th>Table in <code>session.db</code></th><th>Lasts for</th></tr></thead>
+  <tbody>
+    <tr><td><code>user:analyst_name</code>, <code>user:team</code></td><td><code>user_states</code>, one row per app + user, saved <em>without</em> the prefix</td><td>All of that user's conversations</td></tr>
+    <tr><td><code>last_answer</code>, <code>times_remembered</code> (no prefix)</td><td><code>sessions.state</code>, one row per conversation</td><td>This conversation only</td></tr>
+    <tr><td><code>app:…</code> (not used yet)</td><td><code>app_states</code></td><td>Everyone using the app</td></tr>
+    <tr><td><code>temp:…</code> (not used yet)</td><td>not stored</td><td>This turn only</td></tr>
+    <tr><td>every message, tool call and tool result</td><td><code>events</code>, JSON in <code>event_data</code></td><td>The conversation (deleted with it, <code>ON DELETE CASCADE</code>)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>Findings (verified)</h4>
+<ul>
+  <li><code>adk run</code> and <code>adk web</code> both write to <code>.adk/session.db</code>, but as different users (<code>test_user</code> and <code>user</code>). That's why the web UI didn't know the name given in the terminal.</li>
+  <li><strong>State changes are events.</strong> The <code>user:</code> keys appear in the <code>state_delta</code> of the <em>tool result</em> event; <code>last_answer</code> changes on every model reply.</li>
+  <li><code>adk web</code> stores the session's display name in state (<code>__session_metadata__.displayName</code>, taken from the first message).</li>
+  <li>Data survives restarts: SQLite is a file.</li>
+  <li><strong>Without the catalog, the model guesses the schema.</strong> Two runs gave two different SQL suggestions; one used <code>_TABLE_SUFFIX</code>, which is wrong for our partitioned table. Lessons 3–4 fix that.</li>
+  <li>ADK sends OpenTelemetry spans to any OTLP address set in <code>OTEL_EXPORTER_OTLP_*</code>, so our self-hosted Langfuse (v3.225.8, port 3000) can show the runs with no extra package.</li>
+</ul>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">What is the <code>adk web</code> UI?</p>
+<p>ADK's developer UI: a small local web server that runs your agent and shows each step. Events (every message and tool call), State (the keys), Trace (timings) and a graph of agent → tools. It's for development, not for end users (lesson 14 builds a real one).</p></div>
+<div class="qa"><p class="q">Where was the analyst name saved, from the terminal or the web app?</p>
+<p>In both cases, in the same SQLite file <code>agents/ga4_guide/.adk/session.db</code>, table <code>user_states</code>, but under different user IDs. Nothing was saved in Google Cloud.</p></div>
+<div class="qa"><p class="q">What does <code>output_key="last_answer"</code> mean?</p>
+<p>"After every reply, also save the reply text into session state as <code>last_answer</code>." Nothing reads it yet. In lesson 7 one agent writes with <code>output_key="draft_sql"</code> and the next reads it with <code>{draft_sql}</code> in its instruction: that's how sub-agents pass work along. Like <code>Session["last_answer"] = result</code> at the end of an action.</p></div>
+<div class="qa"><p class="q">Is SQLite open source? Can I query it after the app stops?</p>
+<p>It's public domain, a whole database in one file, with no server, and it's built into Python, phones and browsers (like SQL Server LocalDB, only lighter). Yes: open it read-only with <code>sqlite3 -readonly -box agents/ga4_guide/.adk/session.db</code>. The queries are in the Lesson 2 README, Step 4b.</p></div>
+<div class="qa"><p class="q">Why write <code>runner_demo.py</code> at all?</p>
+<p>So far we only used ADK's ready-made apps (<code>adk run</code>, <code>adk web</code>). Eventually <em>your</em> program (a website, a test) has to talk to the agent. The script is the smallest such program: make a session, send a message, print what comes back. It's like driving an automatic, then trying a manual once.</p></div>
+<div class="qa"><p class="q">Is the script an HTTP client calling the agent?</p>
+<p>No. It <strong>imports the agent as Python code</strong> and runs it in its own process: a project reference to a class library, not <code>HttpClient</code>. HTTP comes when the agent is deployed (lesson 8) and a web app calls it (lesson 14).</p></div>
+<div class="qa"><p class="q">Is the agent a server that gets started and killed for each question?</p>
+<p>Locally, no: the agent is just an object, and nothing runs between messages. Each message is a loop of calls to Gemini. On <strong>Agent Runtime</strong> there <em>is</em> a server: Google runs a container that holds your agent and a Runner and stays up, waiting for HTTP requests.</p></div>
+<div class="qa"><p class="q">What is the Runner?</p>
+<p>The engine. The agent only <em>describes</em> what to do (name, instruction, tools); the Runner <em>does</em> it: load the session, call Gemini, run tools, save events, hand them back. <code>Runner(agent=root_agent, ...)</code>: the Runner holds the agent; the agent doesn't know about the Runner. That's why the same agent works in every host in the diagram.</p></div>
+<div class="qa"><p class="q">Does <code>adk run</code> also use a Runner?</p>
+<p>Yes. <code>adk run</code>, <code>adk web</code> and our script all create a Runner. They differ only in how you talk to it and where it stores sessions.</p></div>
+<div class="qa"><p class="q">What is <code>InMemorySessionService</code>?</p>
+<p>The simplest session storage: an ordinary Python dictionary in RAM, forgotten when the script ends. The SQLite file isn't touched. The agent never chooses its storage; <strong>whoever runs it</strong> does. Like Entity Framework's InMemory provider vs SQL Server: same code, one line decides.</p></div>
+<div class="qa"><p class="q">Would a web app do the same as the script?</p>
+<p>Either <strong>A</strong>: the web app imports the agent and runs its own Runner, exactly like the script (that's what <code>adk web</code> is); or <strong>B</strong>: the agent is deployed on Agent Runtime and the web app calls it over HTTP, and Google's server runs the Runner. We do A now and B in lessons 8 and 14.</p></div>
+</details>
 
 <h2 id="glossary">Glossary</h2>
 <p class="lede">Every term used here, in one line, with a .NET or SQL Server comparison. The full version is <a href="docs/glossary.md">docs/glossary.md</a>.</p>

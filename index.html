@@ -445,7 +445,8 @@ details.lesson li{margin:4px 0}
   <li><code>adk create</code> made <code>agents/ga4_guide/</code>; we replaced <code>agent.py</code> with an agent that has one tool, <code>remember_analyst</code>, and <code>output_key="last_answer"</code>.</li>
   <li>Chatted with it in the terminal (<code>adk run</code>) and in the browser dev UI (<code>adk web</code>): Events, State, Trace and the agent graph.</li>
   <li>Opened the sessions file <code>.adk/session.db</code> with <code>sqlite3</code> and read every table.</li>
-  <li>Next: <code>scripts/runner_demo.py</code> (the Runner by hand) and its trace in our own Langfuse.</li>
+  <li>Wrote <code>scripts/runner_demo.py</code>: our own Runner with in-memory sessions. Turn 1 called <code>remember_analyst</code> and changed the <code>user:</code> keys; turn 2 made no tool call and refused to invent a number; the session had 6 events; a <strong>new</strong> session for the same user started with only <code>user:analyst_name</code> and <code>user:team</code>. State scoping, seen in our own code (<strong>verified</strong>).</li>
+  <li>Next: the same run in our own Langfuse (Step 5b).</li>
 </ul>
 
 <h4>The big picture: one agent class, many hosts</h4>

@@ -1,6 +1,6 @@
 # Lesson 2 results: First ADK agent
 
-Run on 2026-11-24 and 2026-11-25. Everything on this page is **verified** unless marked otherwise. **Status: in progress** (Steps 1–4b done; Step 5 `runner_demo.py` and Step 6 still to do).
+Run on 2026-11-24 and 2026-11-25. Everything on this page is **verified** unless marked otherwise. **Status: in progress** (Steps 1–5 done; Step 5b Langfuse and Step 6 commit still to do).
 
 ## What worked
 
@@ -11,6 +11,25 @@ Run on 2026-11-24 and 2026-11-25. Everything on this page is **verified** unless
 | 3. `adk run` | Asked for name and team, called `remember_analyst`, then said it has no data access for the purchases question |
 | 4. `adk web` | Same three turns; Events, State, Trace and the agent graph all visible |
 | 4b. `sqlite3` on `.adk/session.db` | Every table read, see below |
+| 5. `scripts/runner_demo.py` | Ran first time, output below |
+
+## Step 5: the Runner by hand (2026-11-25)
+
+Output of `uv run python scripts/runner_demo.py` (in-memory sessions, user `analyst-1`):
+
+| Turn | What happened |
+|---|---|
+| 1. "Hi, I'm Priya from the merch analytics team." | `calls tool remember_analyst({'name': 'Priya', 'team': 'merch analytics team'})` → `tool result {'status': 'saved', …}` → `state change: {'user:analyst_name': 'Priya', 'user:team': 'merch analytics team', 'times_remembered': 1}` → model greeting → `state change: {'last_answer': …}` |
+| 2. "How many purchases were there in December 2020?" | **No tool call.** The model said it has no query access and offered to write the SQL. Only `last_answer` changed. It did not invent a number |
+| After | Session has **6 events** (2 user messages, 1 tool call, 1 tool result, 2 model replies). Its state: `times_remembered`, `last_answer`, `user:analyst_name`, `user:team` |
+| A NEW session, same user | Starts with only `{'user:analyst_name': 'Priya', 'user:team': 'merch analytics team'}`: the `user:` keys survive, `times_remembered` and `last_answer` do not |
+
+Findings:
+
+1. **Everything matched the offline test** done before the lesson was written: scoping works as documented.
+2. The event stream the script prints is the same stream `adk web` shows in its Events tab and `adk run` prints. Our script was a Runner host with about 50 lines.
+3. `InMemorySessionService` left no trace: `session.db` has no `analyst-1` rows (**guess**, not queried; check with `SELECT DISTINCT user_id FROM sessions`).
+4. 6 events here vs 8 in the `adk run` session: the earlier sessions had one extra user/model exchange (the model first asked for the team).
 
 ## Where the data lives: `agents/ga4_guide/.adk/session.db`
 

@@ -175,6 +175,56 @@ Stop it with `Ctrl+C`.
 >
 > `adk run` and `adk web` use **different user IDs** (`test_user` vs `user` in our run, **verified**). That's why the name you gave in the terminal wasn't known in the web UI. On Agent Runtime the managed **Sessions** service replaces this file (lesson 8).
 
+## Step 4b. Look inside the session database yourself
+
+**SQLite** is a whole database in one file. It has no server, it's public domain, and it ships with Python, every phone and every browser. (.NET comparison: SQL Server LocalDB, only lighter; use it from C# with `Microsoft.Data.Sqlite`.) Because it's a file, everything survives a restart. Stop `adk web`, start it again, and the data is still there.
+
+Install the command-line shell once (Ubuntu):
+
+```bash
+sudo apt install sqlite3
+```
+
+Open the file **read-only**, so you can't change it by accident, even while `adk web` is running:
+
+```bash
+sqlite3 -readonly -box agents/ga4_guide/.adk/session.db
+```
+
+Then run these inside the `sqlite>` prompt:
+
+```sql
+.tables
+SELECT app_name, user_id, state FROM user_states;
+SELECT user_id, id, state FROM sessions;
+```
+
+The whole conversation, one row per event. `author` and the content live **inside** the `event_data` JSON, so `json_extract` pulls them out:
+
+```sql
+SELECT user_id,
+       json_extract(event_data, '$.author') AS author,
+       substr(coalesce(json_extract(event_data, '$.content.parts[0].text'),
+                       'calls '     || json_extract(event_data, '$.content.parts[0].function_call.name'),
+                       'result of ' || json_extract(event_data, '$.content.parts[0].function_response.name')), 1, 45) AS what,
+       substr(json_extract(event_data, '$.actions.state_delta'), 1, 70) AS state_change
+FROM events ORDER BY timestamp;
+```
+
+Type `.quit` to leave.
+
+**What we saw (verified, 2026-11-25):**
+
+| Query | What it showed | The idea behind it |
+|---|---|---|
+| `user_states` | Two rows, `test_user` (from `adk run`) and `user` (from `adk web`), each `{"analyst_name": …, "team": …}`, **without** the `user:` prefix | `user:` state is stored once per app + user, so every session of that user sees it |
+| `sessions` | One row per conversation; `state` holds `last_answer` and `times_remembered`. `adk web` also adds `__session_metadata__: {"displayName": "hi"}`, the session's name in the UI, taken from the first message | State with no prefix belongs to one conversation |
+| `events` | 8 rows per conversation: user text → model text → user text → **calls** `remember_analyst` → **result of** `remember_analyst` → model text → … | `adk web`'s Events tab is just this table |
+| `events.state_change` | The `user:` keys and `times_remembered` change on the **tool result** event; `last_answer` changes on **every** model text event | Changes to state are recorded as events. Replaying the events rebuilds the state |
+| The two `last_answer`s | Two runs, two different SQL guesses: one filtered on `event_date`, the other used `_TABLE_SUFFIX` (wrong: the table is partitioned, not sharded) | Without the catalog the model **guesses** the schema. Lesson 3 fixes that |
+
+The `events` table also has `session_id` and a **foreign key to `sessions` with `ON DELETE CASCADE`**: delete a session and its events go with it. Each event's JSON also records `model_version` (`gemini-3.5-flash`) and an `invocation_id` that groups all the events of one turn.
+
 ## Step 5. Do it yourself: the Runner by hand
 
 `adk run` and `adk web` are both thin wrappers around a **Runner** and a **SessionService**. Writing those yourself removes the magic. In lesson 6 (eval) and lesson 8 (deploy), ADK does exactly this.

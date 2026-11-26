@@ -112,6 +112,12 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
 .qa{max-width:80ch}
 @media (prefers-reduced-motion:reduce){details.lesson>summary::before{transition:none}}
 
+pre.code{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-x:auto;font:0.84em/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:8px 0 12px}
+pre.code code{background:none;padding:0;font-size:1em}
+figure.shot{margin:10px 0 16px}
+figure.shot img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px;display:block}
+figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
 </style>
 <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
@@ -412,7 +418,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge done">done</span></td></tr>
     <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge done">done</span></td></tr>
     <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge done">done</span></td></tr>
     <tr><td>8</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>9</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs tool calls and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>10</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry metadata; skill loaded from Skill Registry; MCP server used from 3 clients; optional Claude Code plugin</td><td><span class="badge planned">planned</span></td></tr>
@@ -939,25 +945,116 @@ Knowledge Catalog
 </ul></div>
 </details>
 <details class="lesson" id="l7">
-<summary><span class="num">Lesson 7</span><span class="ttl">Multi-agent</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<summary><span class="num">Lesson 7</span><span class="ttl">Multi-agent</span><span class="when">2026-11-26</span><span class="badge done">done</span></summary>
 <div class="basics"><h4>The basics</h4>
-<p>A <strong>team</strong> of small agents instead of one big one. Two ways: <strong>the model decides</strong> (a front desk <em>transfers</em> the conversation to a specialist, or calls another agent <em>as a tool</em>), or <strong>the code decides</strong> (a <code>Workflow</code>: a graph of steps joined by edges, with routes like "approved" and "fix"). Steps pass work through session state (<code>output_key</code> and <code>{placeholder}</code>).</p>
+<p>A <strong>team</strong> of small agents instead of one big one, built two ways:</p>
+<ul>
+  <li><strong>The model decides</strong> (ReAct agents): a front desk <em>transfers</em> the conversation to a specialist, or one agent calls another <em>as a tool</em>.</li>
+  <li><strong>The code decides</strong> (a <code>Workflow</code>): a graph of steps (nodes) joined by edges, with routes like <code>"approved"</code> and <code>"fix"</code>.</li>
+</ul>
+<p>Every <code>Agent</code> is a <strong>ReAct</strong> loop: think, call a tool, look at the result, repeat. A <code>Workflow</code> only fixes the <em>order</em> between steps; the steps can still be ReAct agents. ADK 2.15 deprecates <code>SequentialAgent</code>, <code>ParallelAgent</code> and <code>LoopAgent</code> in favor of <code>Workflow</code> (chain = sequential, fan-out = parallel, a route pointing back = loop).</p>
 </div>
-<h4>What we're doing</h4>
+
+<h4>How we set it up: <code>ga4_team</code> (the model decides)</h4>
+<pre class="diagram">ga4_team  (front desk: greets, routes)
+ |-- transfer --&gt; policy_expert   explains rules, no SQL
+ '-- transfer --&gt; data_analyst    writes + runs SQL
+                    '-- calls as a tool --&gt; sql_reviewer   replies APPROVED or problems</pre>
+<pre class="code"><code>sql_reviewer = Agent(name="sql_reviewer", instruction="...reply APPROVED or list problems...",
+                     tools=[skill])
+
+policy_expert = Agent(name="policy_expert",
+                      description="Explains the data team's rules ... Does not run queries.",
+                      tools=[skill])
+
+data_analyst = Agent(name="data_analyst",
+                     description="Answers questions that need numbers ...",
+                     instruction="...Before running SQL, call `sql_reviewer`...",
+                     tools=[skill, bigquery, AgentTool(agent=sql_reviewer)])   # agent as a TOOL
+
+root_agent = Agent(name="ga4_team",                                          # the front desk
+                   instruction="Rule question -&gt; policy_expert. Numbers -&gt; data_analyst.",
+                   tools=[remember_analyst],
+                   sub_agents=[policy_expert, data_analyst])                 # agents it can TRANSFER to</code></pre>
 <ul>
-  <li><code>ga4_team</code>: front desk → <code>policy_expert</code> or <code>data_analyst</code>; the analyst calls <code>sql_reviewer</code> as a tool before running SQL.</li>
-  <li><code>ga4_flow</code>: <code>sql_writer</code> → <code>sql_reviewer</code> → <code>check_review</code> (code) → back to the writer on "fix" (at most 3 tries) or on to <code>answer_writer</code>.</li>
-  <li>Score both with lesson 6's eval set. Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">lessons/07-multi-agent</a>.</li>
+  <li><code>sub_agents=[...]</code> gives the front desk a <code>transfer_to_agent</code> tool. It reads each specialist's <code>description</code> to choose. The specialist then <strong>takes over</strong> the conversation.</li>
+  <li><code>AgentTool(agent=sql_reviewer)</code> makes the reviewer look like a function with one <code>request</code> argument. The analyst <strong>asks</strong>, gets one answer, and stays in charge. The reviewer never talks to the user.</li>
 </ul>
-<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+<figure class="shot"><img src="docs/screenshots/07-ga4-team.webp" alt="adk web: ga4_team graph with policy_expert, data_analyst and the sql_reviewer tool; the answer 106,301" loading="lazy"><figcaption>Your run: the team as a tree (left); <code>data_analyst</code> calls <code>sql_reviewer</code> as a tool, then <code>execute_sql</code>; answer 106,301 (plus an unasked "final" 97,780).</figcaption></figure>
+
+<h4>How we set it up: <code>ga4_flow</code> (the code decides)</h4>
+<pre class="diagram">START -&gt; start_question (code: reset) -&gt; sql_writer -&gt; sql_reviewer -&gt; check_review (code)
+                                            ^                               |        |
+                                            '------------ "fix" ------------'   "approved"
+                                                     (at most 3 tries)               |
+                                                                              answer_writer -&gt; END</pre>
+<pre class="code"><code>sql_writer   = Agent(name="sql_writer",   instruction="...feedback: {review?} ...",
+                     tools=[skill, get_table_info], output_key="draft_sql")      # saves to state
+sql_reviewer = Agent(name="sql_reviewer", instruction="Draft SQL: {draft_sql} ...",
+                     tools=[skill], output_key="review")
+answer_writer = Agent(name="answer_writer", instruction="Run {draft_sql} ...", tools=[execute_sql])
+
+def start_question(ctx):                     # plain Python node
+    ctx.state["tries"] = 0; ctx.state["review"] = ""
+
+def check_review(ctx, review: str):          # reads state["review"]
+    ctx.state["tries"] += 1
+    if review.startswith("APPROVED") or ctx.state["tries"] &gt;= 3:
+        return Event(route="approved")
+    return Event(route="fix")
+
+root_agent = Workflow(name="ga4_flow", edges=[
+    ("START", start_question, sql_writer, sql_reviewer, check_review),   # a chain
+    (check_review, {"approved": answer_writer, "fix": sql_writer}),      # a routing map
+])</code></pre>
 <ul>
-  <li><strong><code>SequentialAgent</code>, <code>ParallelAgent</code> and <code>LoopAgent</code> are deprecated</strong> in ADK 2.15 "in favor of Workflow", and a Workflow "cannot yet be used as an LlmAgent sub-agent".</li>
-  <li><strong>Eval set, one run each:</strong> ga4_guide 4 of 5, <strong>ga4_team 5 of 5</strong>, ga4_flow 3 of 5. The reviewer fixed the engaged-sessions mistake (106,301). ga4_flow's last step didn't know <em>why</em> cities were refused: in a pipeline each step knows only what you pass it.</li>
-  <li><strong>Small steps, fewer tokens:</strong> ga4_flow used 18K to 37K tokens per case vs ga4_guide's 45K to 133K, and cost the least (about $0.47 vs $0.52 and $0.64 for ga4_team).</li>
-  <li>My first reviewer approved the wrong query; it worked only after explicit checks were added. A reviewer is only as good as its checklist.</li>
-  <li>Transfers have a hidden cost: ADK warns that each transfer resends the whole prompt uncached (lesson 23).</li>
+  <li><strong>Steps pass work through session state:</strong> <code>output_key="draft_sql"</code> saves an agent's reply; <code>{draft_sql}</code> in the next instruction reads it. <code>{review?}</code> means "empty if not set".</li>
+  <li><strong>Plain Python nodes</strong> (<code>start_question</code>, <code>check_review</code>) read state by parameter name and pick the next edge with <code>Event(route=...)</code>.</li>
+  <li><strong>Each step gets only the tools it needs:</strong> the writer can't run SQL; only <code>answer_writer</code> can.</li>
+  <li><code>start_question</code> resets <code>tries</code> and <code>review</code> so a second question doesn't inherit the first one's feedback.</li>
 </ul>
-<p class="diagram-note">Results will be added when you've run it.</p>
+<figure class="shot"><img src="docs/screenshots/07-ga4-flow.webp" alt="adk web: ga4_flow graph START, start_question, sql_writer, sql_reviewer (2x), check_review, answer_writer, END; answer 106,301" loading="lazy"><figcaption>Your run: writer and reviewer ran <strong>2x</strong> (the reviewer sent the first draft back), <code>route: approved</code>, then <code>answer_writer</code>: 106,301.</figcaption></figure>
+
+<h4>What happened (verified 2026-11-26)</h4>
+<div class="table-wrap"><table>
+<tr><th>Your run, "engaged sessions in January?"</th><th><code>ga4_team</code></th><th><code>ga4_flow</code></th></tr>
+<tr><td>Answer (policy: 106,301)</td><td><strong>106,301</strong> (+ unasked "final" 97,780)</td><td><strong>106,301</strong></td></tr>
+<tr><td>Path</td><td>policy_expert → back to ga4_team → data_analyst → reviewer tool → SQL</td><td>writer → reviewer → <em>fix</em> → writer → reviewer → <em>approved</em> → answer</td></tr>
+<tr><td>Model calls / tokens / cost</td><td>11 / 84,767 / $0.18</td><td>17 / 59,555 / $0.17</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+<tr><th>Claude's eval run (lesson 6 set, one run each)</th><th><code>ga4_guide</code></th><th><code>ga4_team</code></th><th><code>ga4_flow</code></th></tr>
+<tr><td>Passed</td><td>4 of 5</td><td><strong>5 of 5</strong></td><td>3 of 5</td></tr>
+<tr><td>Engaged sessions</td><td>111,119 (GA4 flag)</td><td><strong>106,301</strong></td><td>106,166</td></tr>
+<tr><td>Tokens per case</td><td>45K to 133K</td><td>30K to 74K</td><td><strong>18K to 37K</strong></td></tr>
+<tr><td>Cost of the run</td><td>$0.52</td><td>$0.64</td><td><strong>$0.47</strong></td></tr>
+</table></div>
+<ul>
+  <li><strong>The reviewer fixed lesson 6's mistake</strong>: both teams gave 106,301 in your runs.</li>
+  <li><strong>Results vary run to run</strong>: ga4_flow was right in your run and wrong (106,166) in the eval run. One run doesn't rank them.</li>
+  <li><strong>Each pipeline step knows only what you pass it</strong>: in the eval's cities question, <code>answer_writer</code> gave regions without saying why; it never saw the privacy rule.</li>
+  <li><strong>Small steps, fewer tokens</strong>: ga4_flow made the most model calls but used the fewest tokens.</li>
+  <li><strong>A reviewer is only as good as its checklist</strong>: the first version approved the wrong query.</li>
+  <li><strong>Transfers cost cache</strong>: ADK warns each transfer resends the whole prompt uncached (lesson 23).</li>
+</ul>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">What are Sequential, Parallel and Loop agents, and why deprecated?</p>
+<p>Older fixed-order wrappers: run in order, at the same time, or repeat. ADK 2.15 replaces all three with one <code>Workflow</code> graph, which also does branches and plain Python steps. <code>ga4_flow</code>'s loop would have needed a <code>LoopAgent</code> before.</p></div>
+<div class="qa"><p class="q">What is <code>AgentTool(agent=sql_reviewer)</code>?</p>
+<p>A wrapper that makes an agent look like a tool. The analyst calls it with a <code>request</code>, ADK runs the reviewer, and its reply comes back as the tool result. A sub-agent instead takes over the conversation.</p></div>
+<div class="qa"><p class="q">What is <code>SkillToolset</code> with <code>list_skills</code>, <code>load_skill</code>, <code>load_skill_resource</code>?</p>
+<p>ADK's tools for reading our one skill folder (<code>skills/ga4-context</code>), the same as lesson 4: list the skills, read <code>SKILL.md</code>, read one reference file. <code>tool_filter</code> leaves out <code>run_skill_script</code>.</p></div>
+<div class="qa"><p class="q">Which team guarantees the review?</p>
+<p><code>ga4_flow</code>. In <code>ga4_team</code> the instruction <em>asks</em> the analyst to call the reviewer; in <code>ga4_flow</code> the graph <em>makes</em> it run before any SQL. When a step must not be skipped, put it in the graph.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">lessons/07-multi-agent</a> · evidence: <code>results/07-multi-agent.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>Transfer = hand the conversation over. Agent as a tool = ask once, stay in charge. Workflow = the code fixes the order.</li>
+<li>Steps share work through state: <code>output_key</code> writes, <code>{name}</code> reads.</li>
+<li>A reviewer step catches mistakes, but only those on its checklist.</li>
+<li>Measure a team with the same eval set; one run is not enough to rank.</li>
+</ul></div>
 </details>
 
 <h2 id="glossary">Glossary</h2>

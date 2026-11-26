@@ -237,16 +237,23 @@ def make_toolset(mode: str) -> McpToolset:
     return McpToolset(connection_params=params)
 
 
+def show(result: dict) -> None:
+    """Print what came back: the parts of the result, then the text inside each part."""
+    print("result parts:", list(result))  # e.g. ['content', 'isError'] (Step 5 adds 'structuredContent')
+    for part in result.get("content", []):
+        print(part["text"])
+
+
 async def main(mode: str) -> None:
     toolset = make_toolset(mode)
     try:
         tools = {t.name: t for t in await toolset.get_tools()}
         for name, tool in tools.items():
-            print(f"{name:14} {(tool.description or '')[:70]!r}")
+            print(f"{name:14} {(tool.description or '').splitlines()[0]}")
         print("\nlist_pages ->")
-        print(await tools["list_pages"].run_async(args={}, tool_context=None))
+        show(await tools["list_pages"].run_async(args={}, tool_context=None))
         print("\nsearch_pages('72') ->")
-        print(await tools["search_pages"].run_async(args={"query": "72", "max_results": 2}, tool_context=None))
+        show(await tools["search_pages"].run_async(args={"query": "72", "max_results": 2}, tool_context=None))
     finally:
         await toolset.close()
 
@@ -264,7 +271,8 @@ uv run python scripts/list_okf_tools.py stdio
 - three tools: `get_page`, `list_pages`, `search_pages`, with their descriptions
 - `list_pages` returning the 8 pages, each with a name and the date it was last updated
 - `search_pages('72')` returning lines that mention 72 (the 72-hour rule), from the `events` table page and the metrics page, with line numbers
-- only `content` in each result, **no** `structuredContent`
+- `result parts: ['content', 'isError']` for each result: the text copy and an error flag, **no** `structuredContent`
+- the text inside each part, one JSON object per page or hit (`show()` prints just that text; the raw result is a Python dict, which is why piping it into `jq` fails)
 
 You did not start the server. The client **launched it as a child process** (`StdioServerParameters`) and stopped it at the end. It takes a few seconds: each call goes to the catalog.
 
@@ -294,7 +302,7 @@ In Lesson 3 the catalog's `lookup_context` result carried the same 36,700 charac
 uv run python scripts/list_okf_tools.py stdio | grep -c structuredContent
 ```
 
-**Look for:** a number above 0: the result now has a `structuredContent` copy next to `content` (stdio starts a fresh server each time, so you don't restart anything). Put `structured_output=False` back. The duplicate comes from the **server's SDK**, so when you write the server you control it. For Google's hosted server we can't, which is why lesson 9 plans a plugin that strips one copy.
+**Look for:** `1`: `list_pages` now shows `result parts: ['content', 'structuredContent', 'isError']`, a second copy next to `content` (stdio starts a fresh server each time, so you don't restart anything). Put `structured_output=False` back. The duplicate comes from the **server's SDK**, so when you write the server you control it. For Google's hosted server we can't, which is why lesson 9 plans a plugin that strips one copy.
 
 ## Step 5b. Turn on the cache (optional, 2 minutes)
 

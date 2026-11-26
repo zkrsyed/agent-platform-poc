@@ -1,14 +1,18 @@
 # Lesson 4: A skill
 
-**Goal:** package the table's business rules as a **skill**, load it into `ga4_guide`, and measure what changes against Lesson 3: SQL quality, model calls, tokens and cost. About 45 minutes.
+**Goal:** give `ga4_guide` a **skill**: a cheat sheet of notes about our table that it reads before writing SQL. Then check two things: does it behave the **same way every time** (repeatability), and what does it do to cost (tokens, calls, seconds). About 60 minutes.
 
-**Cost:** a few Gemini calls (cents) and tiny BigQuery queries. Nothing is created in GCP.
+**Cost:** about 12 short agent runs (roughly a dollar in Gemini calls, **guess**, based on Lesson 3's $0.10 per question) and tiny BigQuery queries. Nothing is created in GCP.
 
 ## Why this lesson exists
 
-In Lesson 3 the agent got its rules from the catalog. That worked, but one question cost **5 model calls and about $0.10**, because `lookup_context` returned about 36,700 characters, and the result carries them **twice** (as `content` and as `structuredContent`), so about 75,000 characters stayed in the conversation for every later model call (**verified**).
+Writing good SQL for our table needs facts the model doesn't know on its own. For example: filter on `event_date_dt`, wrap refunds in `IFNULL` because they are empty, never show city names. I call these facts **rules**. They are just notes about how to query this table correctly.
 
-A **skill** is the other way to hand an agent know-how: short rules you own and keep in git, loaded **only when the agent needs them**. We'll test whether that is cheaper and better. We don't know yet (**guess**: fewer tokens, because the rules are about 1,700 characters, not 75,000).
+A **skill** is a folder with those notes in a text file (`SKILL.md`). The agent opens it before it writes SQL. Think of a new employee's cheat sheet: you hand it over on day one, and they follow it every time.
+
+The main point of a skill is **repeatable behavior**: the same notes, applied the same way, on every question. Without a skill, the model may apply a rule on one run and skip it on the next (**guess**, which Step 1 tests).
+
+The second point is **cost**. In Lesson 3 the agent got its facts from the catalog, and one question cost 5 model calls and about $0.10, because the catalog result was about 36,700 characters, carried twice, so about 75,000 characters stayed in the conversation (**verified**). Our skill's notes are about 1,700 characters (**guess**: fewer tokens). We measure it; we don't assume it.
 
 ## The ideas
 
@@ -63,22 +67,33 @@ Don't change anything yet. An experiment needs a "before". Start ADK through the
 cd ~/apps/agent-platform-poc && ./scripts/adk.sh web agents
 ```
 
-In **New Session**, say `Hi, I'm Priya from merch analytics.`, then ask these two, one after the other:
+**Repeatability needs repeats.** Run each question **3 times**, each time in a **New Session** (so no memory carries over). Start every session with `Hi, I'm Priya from merch analytics.`, then ask:
 
-1. `What was the daily net revenue for January 2021?`
-2. `What are the top 5 cities by number of purchases?`
+- Question 1: `What was the daily net revenue for January 2021?` (runs A, B, C)
+- Question 2: `What are the top 5 cities by number of purchases?` (runs A, B, C)
 
-For each answer, look at the **SQL it ran** (Events tab, or the final reply) and fill in this table. The rules come from the skill we're about to build:
+That is 6 sessions. For each run, look at the **SQL it ran** (Events tab, or the final reply) and fill in a row. Put ✓ or ✗. The checks come from the notes in the skill we're about to build:
 
-| Check | Question 1 (daily revenue) | Question 2 (top cities) |
-|---|---|---|
-| Filters on `event_date_dt` (not `event_date` or `_TABLE_SUFFIX`) | | |
-| Uses the USD columns | | |
-| Wraps refunds in `IFNULL(..., 0)` | | |
-| Leaves out the last 3 days (2021-01-29 to 31) and says so | | |
-| Shows **city-level** results (not allowed: tier C3) | n/a | |
+**Question 1 (daily revenue)**
 
-Then, in Langfuse, write down for each question: **number of model calls, input tokens of the biggest call, total cost, duration**. Stop `adk web` with `Ctrl+C`.
+| Check | Run A | Run B | Run C |
+|---|---|---|---|
+| Filters on `event_date_dt` (not `event_date` or `_TABLE_SUFFIX`) | | | |
+| Uses the USD columns | | | |
+| Wraps refunds in `IFNULL(..., 0)` | | | |
+| Leaves out the last 3 days (2021-01-29 to 31) and says so | | | |
+| Final number (write it down) | | | |
+
+**Question 2 (top cities)**
+
+| Check | Run A | Run B | Run C |
+|---|---|---|---|
+| Filters on `event_date_dt` | | | |
+| Shows **city-level** results (not allowed: tier C3) | | | |
+
+**Repeatability:** are the three runs the same? Same ✓/✗ pattern and same final number means repeatable. Different patterns mean the agent applies the rules only some of the time. Both outcomes are useful results.
+
+Then, in Langfuse, write down for each run: **number of model calls, input tokens of the biggest call, total cost, duration**. Stop `adk web` with `Ctrl+C`.
 
 (You'll compare these numbers in Step 7. Lesson 3's December question was 5 calls, up to 31,923 input tokens, about $0.10, 30.8 s.)
 
@@ -318,37 +333,44 @@ If a tool fails, say what failed. Never invent figures.""",
 - The instruction changed from "catalog first" to "**skill first**, catalog only if needed". That is the experiment: does the agent follow it, and does it save tokens?
 - `SKILL_DIR` goes up two levels from `agent.py` (`agents/ga4_guide/agent.py` → the repo root), then into `skills/`.
 
-## Step 6. Run the same two questions
+## Step 6. Run the same questions, 3 times each
 
 ```bash
 ./scripts/adk.sh web agents
 ```
 
-In a **New Session**: `Hi, I'm Priya from merch analytics.`, then the same two questions as in Step 1:
+Same method as Step 1: **6 sessions**, each a **New Session**, each starting with `Hi, I'm Priya from merch analytics.`:
 
-1. `What was the daily net revenue for January 2021?`
-2. `What are the top 5 cities by number of purchases?`
+- Question 1: `What was the daily net revenue for January 2021?` (runs A, B, C)
+- Question 2: `What are the top 5 cities by number of purchases?` (runs A, B, C)
 
 **Look for** in the **Events** tab, in order:
-- a call to `load_skill` with `skill_name: "ga4-context"` **before** any SQL
+- a call to `load_skill` with `skill_name: "ga4-context"` **before** any SQL (in every run?)
 - for question 1, probably a `load_skill_resource` call for `references/net-revenue.md`
 - little or no use of `lookup_context` (the catalog is optional now)
 - for question 2, whether the answer shows **cities** or rolls up to region or country
 
-Fill in the same table as in Step 1, with the new answers. Then ask one more, to test the order of rules:
+Fill in the same two tables as in Step 1, with the new runs. Then ask one more, **once**, in a New Session, to test the privacy note:
 
 3. `Show me the names of the cities that spent the most.` Does it explain why it can't show cities, or does it break the rule?
 
-## Step 7. Compare in Langfuse
+## Step 7. Compare
 
-Open the traces for the two questions (Observations view, filter by the newest). Fill in:
+**Part 1: repeatability (the main question).** Put the Step 1 and Step 6 results side by side:
+
+| | Lesson 3 agent (Step 1) | Lesson 4 agent (Step 6) |
+|---|---|---|
+| Q1: how many of 3 runs followed all four checks? | | |
+| Q1: same final number in all 3 runs? | | |
+| Q2: how many of 3 runs showed city-level results? | | |
+| Did the agent call `load_skill` before SQL in all 3 runs? | n/a | |
+
+**Part 2: cost.** Open the traces in Langfuse (Observations view, newest first) and write the **typical run** (or the range over the 3) for each:
 
 | | Lesson 3 agent (Step 1) | Lesson 4 agent (Step 6) |
 |---|---|---|
 | Q1: model calls / biggest input / cost / seconds | | |
 | Q2: model calls / biggest input / cost / seconds | | |
-| Q1: followed all five checks? | | |
-| Q2: showed city-level results? | | |
 
 And answer in your own words:
 - In the trace, click the `load_skill` row. What does its **output** contain, and how long is it?
@@ -378,11 +400,12 @@ git add agents/ga4_guide/agent.py skills scripts/check_skill.py && git commit -m
 3. Why did we filter out `run_skill_script`, and which lesson 3 idea is that?
 4. Why must `name` equal the folder name?
 5. The finality rule is a **policy**, not something the data shows. Why does it matter to label it that way?
+6. Why do we run each question 3 times instead of once? What can one run not show?
 
 ## Send me back
 
-- Your two filled-in tables (Step 1 and Step 6 checks), and the Step 7 numbers
-- The SQL for Question 1 from both agents
+- Your filled-in check tables for Step 1 and Step 6 (3 runs each), and the Step 7 comparison tables
+- The SQL for Question 1 from one run of each agent, plus any run that **differed** from the others
 - The answer to Question 3 ("names of the cities that spent the most")
 - What the `load_skill` row's output looked like in Langfuse
 - Anything that didn't match this page

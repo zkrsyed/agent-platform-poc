@@ -82,6 +82,7 @@ Login: your Application Default Credentials (`gcloud auth application-default lo
 
 import os
 import sys
+import time
 
 import google.auth
 from google.auth.transport.requests import AuthorizedSession
@@ -92,6 +93,8 @@ CONTEXT_SET = os.environ.get(
     "projects/kc-okf-poc-261122/locations/us/entryGroups/ga4-merch-context",
 )
 API = "https://dataplex.googleapis.com/v1/"
+# How long to reuse an answer from the catalog. 0 (the default) means always ask the catalog.
+CACHE_SECONDS = int(os.environ.get("OKF_CACHE_SECONDS", "0"))
 
 mcp = MCPServer(
     "okf-pages",
@@ -106,10 +109,18 @@ _creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-p
 _http = AuthorizedSession(_creds)  # adds a fresh access token to every request
 
 
+_cache: dict[str, tuple[float, dict]] = {}  # request -> (when we fetched it, the answer)
+
+
 def _get(path: str, **params) -> dict:
+    key = f"{path}?{sorted(params.items())}"
+    hit = _cache.get(key)
+    if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
+        return hit[1]  # fresh enough: no API call
     r = _http.get(API + path, params=params, timeout=30)
     r.raise_for_status()
-    return r.json()
+    _cache[key] = (time.monotonic(), r.json())
+    return _cache[key][1]
 
 
 def _page_names() -> dict[str, str]:
@@ -186,7 +197,7 @@ if __name__ == "__main__":
 Read it in this order:
 - `MCPServer("okf-pages", instructions=...)` creates the server and gives it a name.
 - `AuthorizedSession` is an HTTP client that adds your Google access token to every request. `_page_names()` makes **one** list call; `_read(name)` gets one entry with `view=ALL` and returns the text of its `overview` aspect. The aspect's key starts with a Google project number, so we match on the end, `.global.overview`.
-- There is **no cache**: every tool call asks the catalog, so you always get the approved version of today. That's slower (a `search_pages` call reads all 8 pages) but it can never drift.
+- `_get` has a small **cache**, off by default (`OKF_CACHE_SECONDS=0`): every tool call asks the catalog, so you always get the approved version. That's slower (a `search_pages` call makes 9 API calls) but it can never drift. Step 5b turns the cache on and shows the trade-off.
 - `@mcp.tool(...)` turns a plain Python function into a tool. The **function name** is the tool name, the **docstring** is the description the model reads, and the **type hints** become the input schema. Write good docstrings: they are the model's only manual.
 - `structured_output=False` makes each tool return only the text copy of its result. Without it the SDK also sends a second, structured copy of the same data (Step 5 shows this).
 - `@mcp.resource("okf://pages/{name}")` is a resource template: any `okf://pages/<page name>` is a resource.
@@ -284,6 +295,21 @@ uv run python scripts/list_okf_tools.py stdio | grep -c structuredContent
 ```
 
 **Look for:** a number above 0: the result now has a `structuredContent` copy next to `content` (stdio starts a fresh server each time, so you don't restart anything). Put `structured_output=False` back. The duplicate comes from the **server's SDK**, so when you write the server you control it. For Google's hosted server we can't, which is why lesson 9 plans a plugin that strips one copy.
+
+## Step 5b. Turn on the cache (optional, 2 minutes)
+
+A **cache** keeps an answer for a while so the next identical request doesn't go to the catalog. Run the same search three times, first with the cache off, then with it kept for 60 seconds:
+
+```bash
+for c in 0 60; do echo "OKF_CACHE_SECONDS=$c"; OKF_CACHE_SECONDS=$c uv run python -c "
+import time; from mcp_servers.okf import server as s
+for i in range(3):
+    t = time.time(); s.search_pages('72'); print(f'  search {i+1}: {time.time()-t:.2f}s')"; done
+```
+
+**Look for:** about 2 seconds for every search with `0`; with `60`, about 2 seconds for the first search and `0.00s` for the next two. (**verified**, 2026-11-26: 2.42 / 1.77 / 1.69 s, then 1.96 / 0.00 / 0.00 s.)
+
+**The trade-off:** with the cache on, a page a reviewer approved in the last 60 seconds is not seen yet. That is drift again, but **bounded**: never older than 60 seconds, unlike a `kcmd pull` copy that stays stale until someone pulls again. Pick the number from how fresh the answer must be. Lesson 23 comes back to caching, for the **model** side (Gemini context caching), where the money is.
 
 ## Step 6. Resources and prompts
 
@@ -413,6 +439,7 @@ Cloud Run creates a billable resource (small, probably within the free tier at o
 4. Where did the model's description of each tool come from?
 5. Why does `get_page` check the name against the catalog's list before fetching it?
 7. What would you see if a reviewer approved a changed page in Studio a minute ago? What would `kcmd mcp` show?
+8. With `OKF_CACHE_SECONDS=300`, how old can a page be when the agent reads it? Why is that still better than a pulled copy?
 6. In Step 5, where did the duplicate `structuredContent` come from, and why can we fix it here but not on Google's hosted server?
 
 ## Send me back

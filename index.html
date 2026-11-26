@@ -428,6 +428,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>20</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; gateway decisions, threat scanning</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>21</td><td><strong>Score, cost, clean up</strong> <span class="cost">☁</span></td><td>Setups D (single) and E (multi-agent) against kc-okf's A–C; cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>22</td><td><strong>Same agent in LangGraph</strong></td><td>The lesson 3 agent rebuilt in LangGraph; mapping to ADK concepts; same Gemini, project and Langfuse; same 5 questions scored (optional, after lesson 5)</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>23</td><td><strong>Caching and cost</strong></td><td>Three places to cache: data in our MCP server, tool results in session state, and the model's input (Gemini implicit caching vs ADK's <code>ContextCacheConfig</code>); measure cost, latency and score on lesson 6's evalset (after lesson 6)</td><td><span class="badge planned">planned</span></td></tr>
   </tbody>
 </table>
 </div>
@@ -828,6 +829,8 @@ Knowledge Catalog
 <p><code>kcmd pull</code> copies the pages to disk as OKF files (Markdown with a header), <code>kcmd push</code> writes edited files back <strong>without</strong> the reviewer (<strong>verified</strong>), and <code>kcmd mcp</code> serves the copy on disk, not the catalog. A copy drifts as soon as someone approves a change in Studio. Our agents have a Google login, so reading the catalog live gives one source of truth.</p></div>
 <div class="qa"><p class="q">Then why do kcmd and OKF exist at all?</p>
 <p>Mostly a <strong>guess</strong>: for agents that can't reach Google, for editing pages like code (editor, Git, bulk push), to save tokens (files used about a third of MCP's tokens, <strong>verified</strong> in kc-okf), and for an open format that any vendor's tools can read.</p></div>
+<div class="qa"><p class="q">Where does caching fit?</p>
+<p>In three places. <strong>Data</strong>: our server can keep a page for a few seconds (lesson 5, Step 5b: a repeated search went from about 2 s to 0.00 s, <strong>verified</strong>), at the price of a page being up to that old. <strong>Tool results</strong>: an agent can keep a fetched page in session state for the rest of the conversation. <strong>Model input</strong>: Gemini can reuse the repeated start of a long prompt at a lower price; that's where the money is (lesson 4's biggest input was about 35K tokens, resent on every call). Lesson 23, taken after lesson 6, measures the last two.</p></div>
 <div class="qa"><p class="q">Why build an MCP server when we already have a skill?</p>
 <p>A skill only helps an agent that carries the folder. An MCP server serves the same pages to any agent, and a page can change without redeploying the agents. It's also the piece that gets deployed, registered and guarded on its own later.</p></div>
 <div class="qa"><p class="q">stdio or HTTP?</p>

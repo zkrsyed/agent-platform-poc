@@ -421,7 +421,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge done">done</span></td></tr>
     <tr><td>8</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">Deploy to Agent Runtime</a></strong> <span class="cost">☁</span></td><td><code>adk deploy agent_engine</code> of a clean build copy (skill inside, no Langfuse key), Agent Identity, scale to zero; the deliberate first 403</td><td><span class="badge done">done</span></td></tr>
     <tr><td>9</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/09-identity-and-guardrails/README.md">Identity, IAM, guardrails in code</a></strong> <span class="cost">☁</span></td><td>Least-privilege roles for the agent principal (one 403 at a time); a <code>GuardrailsPlugin</code> that logs tool calls, blocks write and city-level SQL, asks before a full-table scan, and stops retry loops</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>10</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/10-registry/README.md">Registry: agents, MCP servers, skills</a></strong> <span class="cost">☁</span></td><td>Enable Agent Registry (free); find the auto-registered agent and Google's MCP servers; register our MCP server (tool spec) and skill; <code>ga4_registry</code> finds its skill and catalog tools in the registry</td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>10</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/10-registry/README.md">Registry: agents, MCP servers, skills</a></strong> <span class="cost">☁</span></td><td>Enable Agent Registry (free); find the auto-registered agent and Google's MCP servers; register our MCP server (tool spec) and skill; <code>ga4_registry</code> finds its skill and catalog tools in the registry</td><td><span class="badge done">done</span></td></tr>
     <tr><td>11</td><td><strong>Agent Gateway + governance</strong> <span class="cost">☁</span></td><td>Egress policy per principal; block <code>modify_entry</code> on the network; ENFORCED; Model Armor; semantic governance</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>12</td><td><strong>A2A between agents</strong> <span class="cost">☁</span></td><td>A separately deployed data policy agent with its own identity; found in the Registry and called over A2A through the Gateway</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>13</td><td><strong>Memory</strong> <span class="cost">☁</span></td><td>Session vs Memory Bank (optional)</td><td><span class="badge planned">planned</span></td></tr>
@@ -1207,19 +1207,56 @@ app = App(name="ga4_guide", root_agent=root_agent, plugins=[GuardrailsPlugin()])
 </ul></div>
 </details>
 <details class="lesson" id="l10">
-<summary><span class="num">Lesson 10</span><span class="ttl">Agent Registry</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<summary><span class="num">Lesson 10</span><span class="ttl">Agent Registry</span><span class="when">2026-11-26</span><span class="badge done">done</span></summary>
 <div class="basics"><h4>The basics</h4>
-<p><strong>Agent Registry</strong> is the phone book for agents, MCP servers and skills: each entry has a description and connection details, and people and code <strong>search</strong> it. Code asks the registry "how do I reach X?" instead of carrying the address. Agent Runtime agents and Google's own MCP servers appear by themselves; our own things are registered as <strong>services</strong>.</p>
+<p><strong>Agent Registry</strong> is the phone book for agents, MCP servers and skills. Each entry has a description and connection details; people and code <strong>search</strong> it. Code asks the registry "how do I reach X?" instead of carrying the address. Agent Runtime agents and Google's own MCP servers and agents appear by themselves; our own things are registered as <strong>services</strong>, and skills are uploaded as ZIPs with revisions and a state (only <strong>Active</strong> ones can be downloaded). The registry is free (<strong>docs</strong>).</p>
 </div>
-<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+
+<h4>What's in the registry now (verified)</h4>
+<div class="table-wrap"><table>
+<tr><th>Tab</th><th>Ours</th><th>Google's</th></tr>
+<tr><td>Agents (47)</td><td><code>ga4-guide</code>, in <code>us-central1</code>, type <code>CUSTOM</code>, <strong>no agent card</strong> ("Non A2A")</td><td>46 × Workspace Agent (one per location), type <code>A2A_AGENT</code> with a URL and skills</td></tr>
+<tr><td>MCP Servers (15)</td><td><code>OKF pages (lesson 5)</code>, Runtime "MCP" (a service we created, with its tool spec)</td><td>14 servers named after their APIs, e.g. <code>dataplex.googleapis.com</code>, <code>bigquery.googleapis.com</code></td></tr>
+<tr><td>Skills</td><td><code>private-ga4-context</code>, <code>STATE_ACTIVE</code></td><td>100+ such as <code>cloud.google.com-bigquery-migration-validator</code></td></tr>
+</table></div>
 <ul>
-  <li>The API is off in our project ("Agent Registry API has not been used in project ... or it is disabled"); enabling it is Step 1.</li>
-  <li><code>gcloud agent-registry</code> has <code>agents</code> and <code>mcp-servers</code> (list, describe, search), <code>services</code> (create...), <code>bindings</code> and <code>endpoints</code>, but no <code>skills</code> in our gcloud, so skills go through the REST API.</li>
-  <li>ADK has clients for both: <code>AgentRegistry</code> (<code>list_agents</code>, <code>list_mcp_servers</code>, <code>get_mcp_toolset</code>, <code>get_remote_a2a_agent</code>) and <code>GCPSkillRegistry</code>, which <code>SkillToolset(registry=...)</code> uses to add <code>search_skills</code>.</li>
-  <li>Our MCP server's tool spec: 3 tools, 1,485 bytes. The skill's ZIP: <code>SKILL.md</code> and 2 references, 2,649 bytes.</li>
-  <li>Docs: the registry is free (only optional skill scanning costs, from 2027); everything works in <code>global</code>; Google's MCP servers register automatically.</li>
+  <li><strong>Our agent's entry</strong> lists its Agent Runtime URLs (<code>:query</code>, <code>:streamQuery</code>), <code>Framework: google-adk</code> and its <strong>agent identity</strong> (<code>principal://...reasoningEngines/...</code>). An <strong>agent card</strong> (protocol, A2A URL, skills) is missing; lesson 12 adds one.</li>
+  <li><strong>Connecting through the registry</strong> gives the whole server, write tools included (<code>delete_entry</code>, <code>upsert_entry</code>...); set <code>toolset.tool_filter</code> afterwards to keep only the read tools.</li>
+  <li><strong>The skill upload</strong> first failed with <code>400 ... type is required</code>; the API's own schema (<code>$discovery/rest</code>) showed <code>type: SIMPLE</code> and <code>targetState</code> were required. Our gcloud has no <code>skills</code> commands, so a small script calls the REST API.</li>
 </ul>
-<p class="diagram-note">Results will be added when you've run it.</p>
+
+<h4>Carried vs looked up</h4>
+<pre class="diagram">ga4_guide (lessons 4-9)                         ga4_registry (lesson 10)
+  skill:   skills/ga4-context/ folder,             skill:   search_skills("words") -&gt; private-ga4-context
+           copied into every build                          load_skill downloads it from the registry
+  catalog: URL typed in the code                   catalog: "dataplex.googleapis.com" looked up by name,
+           (plain or mTLS), our own token                   address and auth from the registry
+  update:  edit files, redeploy every agent        update:  upload a new skill revision; no redeploy
+  needs:   nothing else                            needs:   the registry to be reachable</pre>
+<pre class="code"><code>skills = SkillToolset(registry=GCPSkillRegistry(project_id=PROJECT, location="global"),
+                      tool_filter=["search_skills", "load_skill", "load_skill_resource"])
+catalog = registry_mcp_toolset("dataplex.googleapis.com",
+                               ["search_entries", "lookup_context", "lookup_entry"])</code></pre>
+<p><strong>Your run:</strong> <code>search_skills</code> → "1 skill found: private-ga4-context" → <code>load_skill</code> → <code>dataplex_googleapis_com_search_entries</code> / <code>..._lookup_context</code> → <code>load_skill_resource</code> from <code>private-ga4-context</code> → the 72-hour rule, citing the Skill Registry. About 26 s, $0.11. No skill folder and no catalog URL in the agent's code.</p>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Who created all those agents?</p>
+<p>Google: the 46 Workspace Agents are one A2A agent repeated per location, listed automatically, like the 14 Google MCP servers and 100+ Google skills. Only <code>ga4-guide</code> is ours.</p></div>
+<div class="qa"><p class="q">Which script does what?</p>
+<p><code>registry.py</code>: agents and MCP servers (<code>agents</code>, <code>mcp</code>, <code>show NAME</code>, <code>tools NAME</code>). <code>skill_registry.py</code>: skills (<code>upload</code>, <code>list</code>, <code>show</code>, <code>activate</code>, <code>search</code>).</p></div>
+<div class="qa"><p class="q">Why did <code>search</code> work with "random text"?</p>
+<p>It takes words, not a name: the registry matches them against skill names and descriptions, like a search engine. An agent does the same through <code>search_skills</code>, then loads the skill by the name it gets back.</p></div>
+<div class="qa"><p class="q">Does <code>ga4_registry</code> use our <code>okf-pages</code> MCP server?</p>
+<p>No: it uses Google's Knowledge Catalog server. Ours is registered (findable) but runs only on the laptop (<code>127.0.0.1</code>), so nobody else can reach it until it's on Cloud Run.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/10-registry/README.md">lessons/10-registry</a> · evidence: <code>results/10-registry.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>The registry is a phone book: find agents, MCP servers and skills by name or by searching, instead of hard-coding them.</li>
+<li>Google's own entries appear automatically; ours are services (MCP servers, agents) or uploaded skills.</li>
+<li>An auto-registered ADK agent has no agent card; A2A needs one.</li>
+<li>Registry toolsets give the whole server: filter the tools yourself.</li>
+<li>When docs and an API disagree on fields, read the API's discovery document.</li>
+</ul></div>
 </details>
 
 <h2 id="glossary">Glossary</h2>

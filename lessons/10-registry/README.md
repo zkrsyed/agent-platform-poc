@@ -106,7 +106,7 @@ gcloud agent-registry services create okf-pages --project kc-okf-poc-261122 --lo
   --interfaces url=http://127.0.0.1:8808/mcp,protocolBinding=jsonrpc
 ```
 
-**An honest limit:** our server runs only on your machine, so its address is `127.0.0.1`. The registry will list it with its tools and description, so people can **find** it, but nobody else can **reach** it until it runs on Cloud Run (Lesson 5's Part B). That's a real situation too: the entry documents the server; the address changes when it moves. (Syntax from `gcloud agent-registry services create --help` and the docs; the run itself is **not yet verified**.)
+**An honest limit:** our server runs only on your machine, so its address is `127.0.0.1`. The registry will list it with its tools and description, so people can **find** it, but nobody else can **reach** it until it runs on Cloud Run (Lesson 5's Part B). That's a real situation too: the entry documents the server; the address changes when it moves. (**verified**: it worked.)
 
 ### Step 8. Find it
 
@@ -114,7 +114,7 @@ gcloud agent-registry services create okf-pages --project kc-okf-poc-261122 --lo
 uv run python scripts/registry.py mcp global
 ```
 
-**Look for:** `OKF pages (lesson 5)` next to Google's servers. You registered a **service**; the registry shows it as an **MCP server** (**docs**).
+**What we saw (verified):** `OKF pages (lesson 5)` next to Google's 14 servers, with MCP Server ID `...agentregistry:services:okf-pages` and Runtime **MCP** (Google's say **Google MCP**). You registered a **service**; the registry shows it as an **MCP server**.
 
 ---
 
@@ -128,11 +128,11 @@ Our `gcloud` has no `agent-registry skills` commands (**verified**: "Invalid cho
 uv run python scripts/skill_registry.py upload
 ```
 
-It zips `skills/ga4-context` (`SKILL.md` and the two reference files at the ZIP's root, 2,649 bytes, **verified**) and creates a skill with ID `ga4-context`; the registry adds a `private-` prefix (**docs**). The answer is a long-running **operation**.
+It zips `skills/ga4-context` (`SKILL.md` and the two reference files at the ZIP's root, 2,649 bytes) and creates a skill with ID `ga4-context`; the registry adds a `private-` prefix. **What happened (verified):** the first version of the script got `400 ... type is required` (`skill.type`). The API's own schema (`https://agentregistry.googleapis.com/$discovery/rest?version=v1`) lists the required fields: `type: SIMPLE` (one skill, not a bundle) and `targetState`. With those, the skill was created as `private-ga4-context` (`STATE_CREATING` at first) with one revision and `scanState: DISABLED`.
 
 ### Step 10. Make it Active
 
-New skills start as Draft or Disabled, and only Active skills can be downloaded (**docs**).
+Only Active skills can be downloaded (**docs**). **You can usually skip this step:** the upload asks for `targetState: TARGET_STATE_ACTIVE`, and a minute later `list` showed `state=STATE_ACTIVE` with a default revision (**verified**). Running `activate` while the skill was still being created gave `409 The resource is being created and therefore can not be updated yet`: harmless, wait and check `list` instead.
 
 ```bash
 uv run python scripts/skill_registry.py list
@@ -145,7 +145,7 @@ Copy the revision's full `name` (`projects/.../skills/private-ga4-context/revisi
 uv run python scripts/skill_registry.py activate private-ga4-context REVISION_NAME
 ```
 
-(The field names in `upload` and `activate` come from Google's REST docs and are **not yet verified**; if one fails, the script prints Google's error and we fix it together.)
+
 
 ### Step 11. Search for it
 
@@ -153,7 +153,7 @@ uv run python scripts/skill_registry.py activate private-ga4-context REVISION_NA
 uv run python scripts/skill_registry.py search "rules for querying GA4 revenue"
 ```
 
-**Look for:** our skill in the results. This is the same call an ADK agent makes through `search_skills`.
+**What we saw (verified):** `private-ga4-context: Rules and definitions for querying the GA4 merchandise-store table correctly.` `search` takes **words**, not a name: it matches them against skill names and descriptions, like the console's search box. An ADK agent makes the same call through `search_skills`. (The registry also lists 100+ of Google's own skills.)
 
 ### Step 12. An agent that finds its skill in the registry
 
@@ -227,7 +227,7 @@ Say which skill (and catalog entry) each answer came from. Never invent rules.""
 What's different from `ga4_guide`:
 - `SkillToolset(registry=GCPSkillRegistry(...))` with **no** `skills=[...]`: the agent has no skill folder. ADK adds a `search_skills` tool, and `load_skill` downloads a registry skill by name (**verified** in ADK's code).
 - The catalog tools come from `registry_mcp_toolset("dataplex.googleapis.com", [...])`: it finds the server by its **display name** in the registry, connects with the address and auth the registry gives, and keeps only the 3 read tools.
-- It imports, finds the catalog in the registry and builds the filtered toolset locally (**verified**); the run is **not yet verified**.
+- It imports, finds the catalog in the registry and builds the filtered toolset locally (**verified**).
 
 Start the dev UI:
 
@@ -235,7 +235,7 @@ Start the dev UI:
 ./scripts/adk.sh web agents
 ``` Pick **ga4_registry**, New Session, and ask: `Why must daily revenue leave out the last 3 days?`
 
-**Look for:** `search_skills`, then `load_skill` with the registry's skill name (probably `private-ga4-context`), then an answer that cites it.
+**What we saw (verified):** `search_skills` → "1 skill found: `private-ga4-context`" → `load_skill("private-ga4-context")` → `dataplex_googleapis_com_search_entries` and `..._lookup_context` (the registry's toolset prefixes tool names with the server's name) → `load_skill_resource` reading `references/net-revenue.md` **from `private-ga4-context`** → an answer about the 72-hour rule citing "Skill Registry: private-ga4-context". The graph shows `SkillToolset` and `AgentRegistrySingleMcpToolset`. About 26 s and $0.11 in Langfuse.
 
 ### Step 13. Commit
 
@@ -387,7 +387,8 @@ asyncio.run(main())
   uv run python scripts/skill_registry.py search "QUERY"    # search the way an ADK agent does
 
 Our gcloud has no `agent-registry skills` commands, so this calls the REST API (docs:
-docs.cloud.google.com/agent-registry/register-skills and manage-skills). The registry stores the skill
+docs.cloud.google.com/agent-registry/register-skills and manage-skills; field names checked against the
+API's own schema at https://agentregistry.googleapis.com/$discovery/rest?version=v1). The registry stores the skill
 as a ZIP with SKILL.md at its root (max 1 MB) and gives it an ID starting with "private-".
 """
 
@@ -435,6 +436,9 @@ def upload() -> None:
     body = {
         "displayName": "GA4 context",
         "description": "Rules and definitions for querying the GA4 merchandise-store table correctly.",
+        "type": "SIMPLE",                       # required: one skill (not a COMPOSITE bundle)
+        "targetState": "TARGET_STATE_ACTIVE",   # required: agents can download only Active skills
+        "scanningConfig": {"policy": "DISABLED"},  # vulnerability scanning is free until 2027, then paid
         "initialRevision": {"archiveUploadSource": {"archiveContent": base64.b64encode(archive).decode()}},
     }
     print(json.dumps(call("POST", f"{API}/skills", params={"skillId": "ga4-context"}, json=body), indent=2))

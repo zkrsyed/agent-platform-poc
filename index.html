@@ -888,6 +888,24 @@ Knowledge Catalog
   <li>About $0.80 for both parts (Langfuse); eval runs show up in Langfuse as <code>invoke_workflow ga4_guide</code> traces.</li>
 </ul>
 <h4>Questions and answers</h4>
+<h4>Same ideas, other names (docs/guess)</h4>
+<div class="table-wrap"><table>
+<tr><th>Idea</th><th>ADK</th><th>DeepEval</th><th>Ragas</th></tr>
+<tr><td>Judge grades against your criteria</td><td><code>rubric_based_final_response_quality_v1</code></td><td>G-Eval</td><td>aspect critique</td></tr>
+<tr><td>Matches a reference answer</td><td><code>final_response_match_v2</code></td><td>answer correctness</td><td>answer correctness</td></tr>
+<tr><td>Called the right tools</td><td><code>tool_trajectory_avg_score</code></td><td>tool correctness</td><td>tool call accuracy</td></tr>
+<tr><td>Answer sticks to tool results</td><td><code>hallucinations_v1</code></td><td>faithfulness</td><td>faithfulness</td></tr>
+<tr><td>Multi-turn goal reached</td><td><code>multi_turn_task_success_v1</code> + simulated user</td><td>conversation simulator, task completion</td><td>agent goal accuracy</td></tr>
+<tr><td>Fetched the right context, and only that</td><td>none built in; custom metric</td><td>contextual precision / recall</td><td>context precision / recall</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+<tr><th>Platform feature</th><th>Langfuse</th><th>LangSmith</th><th>Google</th></tr>
+<tr><td>Question sets per version</td><td>datasets, experiments</td><td>datasets, experiments</td><td>ADK eval sets; Vertex AI Gen AI evaluation service</td></tr>
+<tr><td>Judge on live traffic</td><td>online evaluators</td><td>online evaluators</td><td>online evaluation with AutoRaters (lesson 17)</td></tr>
+<tr><td>People label answers</td><td>annotation queues</td><td>annotation queues</td><td>to check</td></tr>
+<tr><td>Suggests better prompts from failures</td><td>to check</td><td>prompt improvement</td><td>Vertex prompt optimizer, <code>adk optimize</code> (lesson 17)</td></tr>
+</table></div>
+<p>DeepEval and Ragas <strong>score</strong> answers; Langfuse and LangSmith <strong>store and run</strong> evaluations around traces, and can hold DeepEval or Ragas scores too. Ragas grew out of RAG, so its signature metrics judge <strong>retrieval</strong>: in lesson 5, okf_guide read 4 whole pages for one question, which a context-precision score would flag.</p>
 <div class="qa"><p class="q">Will we also look at Google's own traces, not just Langfuse?</p>
 <p>Yes: lesson 16 compares Cloud Trace and Langfuse span by span (agent, model, tool and MCP calls, tokens, A2A hops). <code>adk web</code> already has <code>--otel_to_cloud</code> and <code>--trace_to_cloud</code> (<strong>verified</strong> in ADK 2.15), so we can try it locally first.</p></div>
 <p class="diagram-note">Results will be added when you've run it.</p>

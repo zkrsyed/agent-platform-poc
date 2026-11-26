@@ -38,6 +38,38 @@ The difference from unit tests: the agent's answer is free text and changes from
 
 ADK also always reports four **informational** numbers that never pass or fail: tool calls, model calls, tokens and seconds. They're your cost and speed check.
 
+## Same ideas, other names (DeepEval, Ragas, Langfuse, LangSmith, Google)
+
+You'll hear other evaluation tools mentioned. They use the same few ideas under different names. This section is background from my general knowledge (**docs/guess**: not tested in this POC), except where marked.
+
+**Metric libraries** (they score answers):
+
+| Idea | ADK (this lesson) | DeepEval | Ragas |
+|---|---|---|---|
+| A judge model grades against your criteria | `rubric_based_final_response_quality_v1` | G-Eval | aspect critique |
+| Matches a reference answer | `final_response_match_v2` | answer correctness | answer correctness |
+| Called the right tools | `tool_trajectory_avg_score` | tool correctness | tool call accuracy |
+| The answer sticks to what the tools returned | `hallucinations_v1` (not used here) | faithfulness | faithfulness |
+| Multi-turn: did the user reach the goal? | `multi_turn_task_success_v1` + simulated user (Part B) | conversation simulator, task completion | agent goal accuracy |
+| Did retrieval fetch the right context, and only that? | nothing built in; a **custom metric** can do it (`custom_metrics` in the config, **verified** in ADK's code) | contextual precision / recall | context precision / recall |
+
+- **DeepEval** is a pytest-style library with many ready-made metrics, for any framework.
+- **Ragas** started with **RAG** (retrieval-augmented generation), so its best-known metrics are about **retrieval**. For us, "retrieval" is reading catalog pages or skill files: in Lesson 5, okf_guide read 4 whole pages to answer one question, and a context-precision score would have flagged that.
+
+**Platforms** (they store and run evaluations around your traces):
+
+| Feature | Langfuse | LangSmith | Google |
+|---|---|---|---|
+| Question sets run against each version | datasets and experiments | datasets and experiments | ADK eval sets (this lesson); Vertex AI's Gen AI evaluation service |
+| A judge scores **live** traffic | online LLM-as-judge evaluators | online evaluators | online evaluation with AutoRaters (lesson 17) |
+| People label answers | annotation queues | annotation queues | (**to check**) |
+| Versioned prompts | prompt management | prompt hub | Agent Registry versions (lesson 10, **guess**) |
+| **Suggests better prompts from failures** | (**to check**) | prompt improvement from feedback | Vertex prompt optimizer, and ADK's `adk optimize` (GEPA) (lesson 17) |
+
+The tools also mix: you can run DeepEval or Ragas and send their scores to Langfuse as scores on the same traces.
+
+**How this maps to our plan:** this lesson covers the metric ideas with ADK. Lesson 16 compares the traces in Langfuse and Cloud Trace. Lesson 17 covers online evaluation and the prompt optimizer, starting from this lesson's failures (`q11` is a ready-made first case). A context-precision check ("did the agent read only what it needed?") fits lesson 23 on caching and cost.
+
 ## The questions
 
 We reuse the earlier kc-okf POC's question set (15 questions with golden SQL, scored there by comparing query results). For this lesson we take **5**, three of which need a policy rule:
@@ -568,6 +600,7 @@ git add eval && git commit -m "Lesson 6: eval set, config and a simulated user"
 4. Why does `session_input` put the analyst's name in state in Part A, and leave it empty in Part B?
 5. Why is the simulated user graded too?
 6. When would you run with `--num_runs 3` instead of once?
+7. What would Ragas call `final_response_match_v2`, and which Ragas idea has no built-in ADK metric?
 
 ## Send me back
 

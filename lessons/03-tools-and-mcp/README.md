@@ -99,6 +99,8 @@ We only use **`execute_sql`** (run a query) and **`get_table_info`** (read a tab
 | `maximum_bytes_billed` | `1_000_000_000` (1 GB) | A query that would read more is rejected before it runs. The whole table is 3.6 GB, so a careless `SELECT *` fails. The December purchase count reads about 34 MB |
 | `max_query_result_rows` | `50` | Stops a huge result from flooding the model's context |
 
+> **There's a hosted BigQuery MCP server too** (**verified** 2026-11-25): `https://bigquery.googleapis.com/mcp` lists 9 tools (`execute_sql`, `execute_sql_readonly`, `get_table_info`, `list_dataset_ids`, `list_table_ids`, `get_dataset_info`, `get_job`, `get_query_results`, `cancel_job`). We use the ADK library here because its safety settings are easy to see. Lesson 11 switches to the hosted one: calls to an MCP server cross the network, so Agent Gateway can govern them (**docs**); a function inside your program can't be.
+
 ## Step 3. Update `agent.py`
 
 Replace **`agents/ga4_guide/agent.py`** with this. New parts are marked `# NEW`:

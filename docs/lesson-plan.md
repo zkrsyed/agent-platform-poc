@@ -85,3 +85,4 @@ Each lesson's status goes `planned` → `in progress` → `done`. Each lesson be
 - Agent Runtime pricing while idle (**to check** before lesson 8).
 - Does the A2UI renderer in the `adk web` bundle render A2UI 1.0, or an older version? Does it need the `a2ui-agent-sdk` package (**guess**; lesson 15)?
 - How a deployed Agent Runtime agent is exposed over A2A, and how A2A calls are authenticated with agent identities (**to check**; lesson 12).
+- Lesson 11: swap the ADK `BigQueryToolset` for Google's hosted BigQuery MCP server (`https://bigquery.googleapis.com/mcp`, 9 tools, **verified** to list in lesson 3) so Agent Gateway can govern the SQL calls; compare the safety settings (**to check**).

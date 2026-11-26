@@ -78,18 +78,20 @@ That is 6 sessions. For each run, look at the **SQL it ran** (Events tab, or the
 
 | Check | Run A | Run B | Run C |
 |---|---|---|---|
-| Filters on `event_date_dt` (not `event_date` or `_TABLE_SUFFIX`) | | | |
-| Uses the USD columns | | | |
-| Wraps refunds in `IFNULL(..., 0)` | | | |
-| Leaves out the last 3 days (2021-01-29 to 31) and says so | | | |
-| Final number (write it down) | | | |
+| Filters on `event_date_dt` (not `event_date` or `_TABLE_SUFFIX`) | ✓ | | |
+| Uses the USD columns | ✓ | | |
+| Wraps refunds in `IFNULL(..., 0)` | ✓ (used `COALESCE(..., 0.0)`, same effect) | | |
+| Leaves out the last 3 days (2021-01-29 to 31) and says so | ✗ (ran 01-01 to 01-31, no mention) | | |
+| Final number (write it down) | $57,350 for January | | |
 
 **Question 2 (top cities)**
 
 | Check | Run A | Run B | Run C |
 |---|---|---|---|
-| Filters on `event_date_dt` | | | |
-| Shows **city-level** results (not allowed: tier C3) | | | |
+| Filters on `event_date_dt` | ✓ | | |
+| Shows **city-level** results (not allowed: tier C3) | No ✓ (it refused, cited policy MSC-417, gave region and country) | | |
+
+*Run A was recorded 2026-11-26 from Langfuse. Q1: 6 model calls, biggest input 36,307 tokens, $0.137, 30.1 s. Q2: 3 model calls, biggest input 39,045 tokens, $0.065, 13.2 s. Caveat: Run A of Q2 ran in the **same session** as Q1, so it reused Q1's catalog lookup and wasn't independent. Redo Q2 in its own New Session when you do runs B and C.*
 
 **Repeatability:** are the three runs the same? Same ✓/✗ pattern and same final number means repeatable. Different patterns mean the agent applies the rules only some of the time. Both outcomes are useful results.
 

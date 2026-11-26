@@ -353,11 +353,26 @@ Then open Langfuse → your project → **Tracing**. What we **verified** (2026-
 - Inside turn 1: `invoke_agent ga4_guide` → `generate_content gemini-3.5-flash` → **`remember_analyst`** (a TOOL span, 2 ms) → a second `generate_content`. Turn 2 has **no tool span**.
 - Per model call: latency, **token counts** (turn 1: 562 + 664 tokens; turn 2: 1,111) and a **cost** (about $0.004 per turn).
 - The graph panel draws `__start__ → invoke_workflow → invoke_agent → generate_content → __end__`.
-- **Not there by default:** the prompt text, your message and the model's reply. Trace Input/Output show `null`, and each model call's input holds only the tool list. See the box below.
+- **Not there by default:** the prompt text, your message and the model's reply. Trace Input/Output show `null`, and each model call's input holds only the tool list. Fix below.
 
 The names say `invoke_workflow` because ADK 2.x runs every agent as a graph **workflow** (**verified** in the span attributes: `gen_ai.operation.name = invoke_workflow`).
 
-> **Why the text is missing (verified in the code, fix not yet tried):** in ADK 2.15, message content is sent as OpenTelemetry **log events**, and only if `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` is on. We only set up the **traces** address, and Langfuse takes traces, so the text never arrives. ADK also has an *experimental* mode, `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`, that puts `gen_ai.input.messages` on the spans themselves (**guess** that this fills in Langfuse; to try).
+### Get the text into Langfuse (verified 2026-11-25)
+
+In ADK 2.15, message content is sent as OpenTelemetry **log events**, and only if a content switch is on. We export only **traces**, and Langfuse takes traces, so the words never arrived. Add two more lines to `agents/ga4_guide/.env`:
+
+```
+OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental
+OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY
+```
+
+- The first selects ADK's newer span format. The second puts the message text **on the spans** (`SPAN_ONLY`). No code change.
+- Run the script again. In Langfuse, **click the `generate_content` row** (not the top row) and look at Input and Output:
+  - 1st model call, input: the system prompt with an **empty name** (`The analyst you are talking to:  (team: )`); output: a call to `remember_analyst`.
+  - the tool row: its arguments and its result.
+  - 2nd model call, input: the **same prompt, now filled in** (`Priya (team: merch analytics)`). That's the `{user:analyst_name?}` placeholder refreshed from state on every call.
+- The top rows (`invoke_workflow`, `invoke_agent`) and the trace's own Input/Output stay `null`. The content lives on the model and tool rows.
+- Compare with the `langfuse` SDK way (three `LANGFUSE_*` variables plus an import). It captures text by itself. Ours needs no new package but needs these two settings.
 
 **`adk web` too:** `adk web` sets up the same exporter by itself when the variables are set (**verified** in `google/adk/cli/api_server.py`). Load the `.env` into the shell first, so they are there when it starts:
 

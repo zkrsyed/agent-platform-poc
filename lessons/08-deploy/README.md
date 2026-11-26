@@ -24,9 +24,10 @@ So far the agent runs only while `adk web` runs on your laptop, as **you** (your
 ## What's different in the cloud (all verified while preparing this lesson)
 
 1. **Only the agent folder is uploaded.** Our skill lives in `skills/`, outside `agents/ga4_guide/`, so a deployed copy would have no skill. We copy it **into** the deployed folder.
-2. **`adk deploy` uploads every value in the agent folder's `.env`** as an environment variable (ADK's deploy code reads it with `dotenv_values`). Our `.env` holds the **Langfuse secret key** and `OTEL_*` lines pointing at `localhost`. So we never deploy `agents/ga4_guide` as it is: we build a clean copy with a new `.env`.
-3. **`gemini-3.5-flash` isn't served in `us-central1`.** A test call there returned `404 NOT_FOUND`; on `global` it answered. Agent Runtime runs in a region, and `adk deploy --region` overrides `GOOGLE_CLOUD_LOCATION`. So we pin the model's location in code with ADK's `Gemini(..., client_kwargs={"location": "global"})`.
-4. **Langfuse can't see the deployed agent**: it runs on `localhost` on your server. The deployed agent's traces go to Google's Cloud Trace instead (lesson 16).
+2. **The cloud image installs only `google-adk[a2a]`** unless the folder has a `requirements.txt`. That has no `mcp` package, so our first deploy failed: the container log said `cannot import name 'McpToolset' from 'google.adk.tools.mcp_tool'`. Our `pyproject.toml` asks for `google-adk[a2a,agent-identity,eval,mcp]` locally, so we never noticed. The build folder now gets a `requirements.txt` (tested in a clean Python 3.11 environment, like the cloud image).
+3. **`adk deploy` uploads every value in the agent folder's `.env`** as an environment variable (ADK's deploy code reads it with `dotenv_values`). Our `.env` holds the **Langfuse secret key** and `OTEL_*` lines pointing at `localhost`. So we never deploy `agents/ga4_guide` as it is: we build a clean copy with a new `.env`.
+4. **`gemini-3.5-flash` isn't served in `us-central1`.** A test call there returned `404 NOT_FOUND`; on `global` it answered. Agent Runtime runs in a region, and `adk deploy --region` overrides `GOOGLE_CLOUD_LOCATION`. So we pin the model's location in code with ADK's `Gemini(..., client_kwargs={"location": "global"})`.
+5. **Langfuse can't see the deployed agent**: it runs on `localhost` on your server. The deployed agent's traces go to Google's Cloud Trace instead (lesson 16).
 
 ---
 
@@ -73,6 +74,7 @@ It creates build/ga4_guide/ with:
   agent.py, __init__.py          copied from agents/ga4_guide
   skills/ga4-context/            the skill, copied INSIDE the agent folder (only this folder is uploaded)
   .env                           ONLY the Google Cloud settings: no Langfuse key, no OTEL lines
+  requirements.txt               the packages the cloud image must install (ADK with MCP and BigQuery)
   .agent_engine_config.json      deploy settings: agent identity, scale to zero
 """
 
@@ -98,6 +100,10 @@ shutil.copytree(ROOT / "skills" / "ga4-context", OUT / "skills" / "ga4-context")
     "GOOGLE_CLOUD_LOCATION=us-central1\n"
 )
 
+# Without this file the cloud image gets only google-adk[a2a], which has no `mcp` package, and the
+# container fails to start: "cannot import name 'McpToolset'" (lesson 8, first deploy). `gcp` brings BigQuery.
+(OUT / "requirements.txt").write_text("google-adk[a2a,agent-identity,mcp,gcp]==2.15.0\n")
+
 (OUT / ".agent_engine_config.json").write_text(json.dumps({
     "identity_type": "AGENT_IDENTITY",  # the agent gets its own identity (a principal), not a shared service account
     "min_instances": 0,                 # scale to zero when idle (default is 1)
@@ -122,7 +128,7 @@ uv run python scripts/stage_deploy.py
 cat build/ga4_guide/.env build/ga4_guide/.agent_engine_config.json
 ```
 
-**Look for:** 7 files under `build/ga4_guide/`, including `skills/ga4-context/SKILL.md` and its two reference files, a `.env` with only three `GOOGLE_*` lines (**no** `OTEL` and **no** Langfuse key), and the config with `"identity_type": "AGENT_IDENTITY"`.
+**Look for:** 8 files under `build/ga4_guide/`, including `requirements.txt`, including `skills/ga4-context/SKILL.md` and its two reference files, a `.env` with only three `GOOGLE_*` lines (**no** `OTEL` and **no** Langfuse key), and the config with `"identity_type": "AGENT_IDENTITY"`.
 
 Optional local check of the built copy, with the region set the way the cloud will set it:
 
@@ -215,7 +221,15 @@ uv run adk deploy agent_engine --project kc-okf-poc-261122 --region us-central1 
 
 What it does (from ADK's deploy code, **verified**): reads `.env` and `.agent_engine_config.json`, writes a Dockerfile, **creates a new Agent Runtime instance**, uploads the folder, and builds and starts the container. If the update fails, it deletes the instance it just created.
 
-**Look for:** `Created a new instance: projects/.../reasoningEngines/ID`, then `Deployed to Agent Platform: projects/.../reasoningEngines/ID`. **Copy that resource name**: every later step needs it. It may take several minutes. If it asks to enable an API (for example Cloud Build), stop and tell me before saying yes.
+**Look for:** `Created a new instance: projects/.../reasoningEngines/ID`, then `Deployed to Agent Platform: projects/.../reasoningEngines/ID`. **Copy that resource name**: every later step needs it. It took about 5 minutes in our first try. If it asks to enable an API (for example Cloud Build), stop and tell me before saying yes.
+
+**If it fails** with "The Reasoning Engine's container failed to start", ADK deletes the instance it created. Read the container's log (read-only) to see why:
+
+```bash
+gcloud logging read 'resource.labels.reasoning_engine_id="ID"' --project kc-okf-poc-261122 --freshness=1h --limit 60 --format='value(timestamp,severity,textPayload)'
+```
+
+That's how we found the missing `mcp` package (point 2 above).
 
 ## Step 5. Look at what was created
 

@@ -377,7 +377,7 @@ details.lesson li{margin:4px 0}
     <tr><td>1</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/01-setup/README.md">Setup</a></strong> <span class="cost">☁</span></td><td>uv, gcloud profile, ADC, APIs, quotas</td><td><span class="badge done">done</span></td></tr>
     <tr><td>2</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/02-first-agent/README.md">First ADK agent</a></strong></td><td>Agent, Runner, Session, State, Events; the <code>adk web</code> dev UI; first traces in Langfuse</td><td><span class="badge done">done</span></td></tr>
     <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge done">done</span></td></tr>
     <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>7</td><td><strong>Multi-agent in one app</strong></td><td>Orchestrator + sub-agents; transfer vs <code>AgentTool</code> vs Sequential/Parallel/Loop vs graph <code>Workflow</code>; single vs multi-agent score</td><td><span class="badge planned">planned</span></td></tr>
@@ -626,12 +626,12 @@ details.lesson li{margin:4px 0}
 <p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">lessons/03-tools-and-mcp</a> · evidence: <code>results/03-tools-and-mcp.md</code>.</p>
 </details>
 
-<details class="lesson" open>
-<summary>Lesson 4 · A skill <span class="when">2026-11-25 → in progress</span></summary>
+<details class="lesson">
+<summary>Lesson 4 · A skill <span class="when">2026-11-26</span></summary>
 <h4>What we're doing</h4>
 <ul>
-  <li>Package the table's business rules as a <strong>skill</strong> (<code>skills/ga4-context/</code>), load it with ADK's <code>SkillToolset</code>, and measure against lesson 3: SQL quality, model calls, tokens, cost. The lesson starts with a baseline run of the lesson 3 agent on two new questions (daily net revenue for January; top cities), so the comparison is fair.</li>
-  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">lessons/04-skill</a>. Results will be added here when we've run it.</li>
+  <li>Write the rules for querying our table (use <code>event_date_dt</code>, wrap refunds in <code>IFNULL</code>, drop the last 3 days, never show city names) into a <strong>skill</strong> (<code>skills/ga4-context/</code>): a cheat sheet the agent reads before it writes SQL. Then check whether it behaves the <strong>same way every time</strong> and what it does to cost. Each question was run 3 times, before (lesson 3 agent) and after (with the skill).</li>
+  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">lessons/04-skill</a>. Evidence: <code>results/04-skill.md</code>.</li>
 </ul>
 <h4>Key ideas</h4>
 <ul>
@@ -647,6 +647,45 @@ details.lesson li{margin:4px 0}
   <li>The lesson's code was extracted into a scratch copy and tested: the skill loads, the agent builds with 9 tools, both SQL snippets validate with a free dry run.</li>
   <li><strong>Found while preparing:</strong> the catalog's <code>lookup_context</code> result contains the same 36,700 characters twice (<code>content</code> and <code>structuredContent</code>), and both go to the model. A lesson 9 plugin could strip one.</li>
 </ul>
+<h4>Results (verified, from Langfuse, 2026-11-26)</h4>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>Lesson 3 agent</th><th>With the skill</th></tr></thead>
+<tbody>
+<tr><td>Daily revenue: drops the last 3 days (3 runs each)</td><td><strong>0 of 3</strong>: the catalog text had the rule, the agent ignored it</td><td><strong>3 of 3</strong>, and says why</td></tr>
+<tr><td>Top cities: shows city names</td><td>1 of 2 partial attempts ran SQL by <code>geo.city</code></td><td><strong>0 of 3</strong> (+ 1 of 1 on "names of the cities that spent the most")</td></tr>
+<tr><td>Daily revenue: model calls / biggest input</td><td>6 / about 35,000 tokens</td><td><strong>4 / about 12,500 tokens</strong></td></tr>
+<tr><td>Daily revenue: cost per question</td><td>about $0.13</td><td><strong>about $0.06</strong> (-52%)</td></tr>
+<tr><td>Top cities: cost per question</td><td>$0.065 (one run, not comparable)</td><td>$0.062 to $0.106</td></tr>
+<tr><td>Catalog calls</td><td>every run</td><td>none</td></tr>
+</tbody></table></div>
+<ul>
+  <li><strong>The skill made behavior repeatable.</strong> Same date limit, same refund handling, and <code>load_skill</code> before any SQL in all 7 clean runs. The baseline was <em>consistently wrong</em> on the 3-day rule, not random, which one run could never show.</li>
+  <li><strong>It also cut cost on the revenue question</strong>, because the agent read about 2,200 characters of skill text instead of the catalog's roughly 75,000 characters in the conversation. Time did not clearly improve (one run took 53.5 s).</li>
+  <li><strong>Not every question got cheaper.</strong> The cities question made 5 to 7 calls, because the agent looked up the table schema and sometimes ran a second query. The skill saves most where it replaces the catalog lookup.</li>
+  <li><strong>The 72-hour rule leaked.</strong> In 2 of 3 cities runs the agent also dropped the last 3 days from a plain purchase count, where the rule wasn't meant to apply. The wording needs tightening (<strong>guess</strong>: "revenue figures only" fixes it).</li>
+  <li><strong>A skill is knowledge, not a guard.</strong> It made the model follow our rules, but nothing blocks a bad query. Hard guarantees come from code-level guardrails (lessons 9 and 11).</li>
+  <li><strong>Rate limits:</strong> Vertex returned <code>429 RESOURCE_EXHAUSTED</code> on many big calls (about 35,000 tokens each), not an auth problem. It came and went; a retry setting on the model would help (idea, not tested).</li>
+</ul>
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Isn't a skill about repeatable behavior? Why did the lesson talk about cost?</p>
+<p>Yes, repeatable behavior is the main point: the same notes, applied the same way on every question. Cost is a side effect we measured. The lesson now leads with repeatability and runs each question 3 times.</p></div>
+<div class="qa"><p class="q">What are "the rules" in the skill?</p>
+<p>Notes about how to query our table correctly, which the model can't know alone: filter on <code>event_date_dt</code>; the data spans 2020-11-01 to 2021-01-31; use the USD revenue columns and wrap refunds in <code>IFNULL</code> (they are empty on every purchase row); a day is final 72 hours after it ends (a policy), so drop the last 3 days for daily or "final" figures; exclude <code>'(data deleted)'</code> for traffic sources; never show city or metro, and don't export <code>user_pseudo_id</code>; read nested arrays with <code>UNNEST</code>. Think of a new employee's cheat sheet.</p></div>
+<div class="qa"><p class="q">Which level of a skill is always in the prompt, and why does the description matter?</p>
+<p>Level 1: name and description (314 characters). It's all the model sees before it decides to load the skill, so a vague description means the skill never gets loaded.</p></div>
+<div class="qa"><p class="q">Skill vs MCP tool?</p>
+<p>A skill is text that enters the prompt: knowledge, nothing runs. An MCP tool runs code on a server and returns a result: an action.</p></div>
+<div class="qa"><p class="q">Why filter out <code>run_skill_script</code>?</p>
+<p>A skill can carry code, and we don't need that. It's the same idea as lesson 3's <code>tool_filter</code>: the agent never learns about a tool it doesn't need.</p></div>
+<div class="qa"><p class="q">Why must <code>name</code> equal the folder name?</p>
+<p>ADK's loader checks it (verified), so a skill can be found by one stable name.</p></div>
+<div class="qa"><p class="q">Why label the 72-hour rule as a policy?</p>
+<p>The data shows no gap in the last days, so nobody can verify the rule from the table. "Policy" tells readers who owns it and stops us claiming the data proves it.</p></div>
+<div class="qa"><p class="q">Why run each question 3 times?</p>
+<p>One run can't show whether behavior repeats. The baseline missed the 3-day rule 3 of 3 times and the skill got it right 3 of 3; a single run each could have hidden both patterns.</p></div>
+<div class="qa"><p class="q">Is "Resource exhausted" a credentials problem?</p>
+<p>No. The tool call before it worked, and tiny Gemini calls with the same credentials returned 200. A 429 means rate limit or capacity; an auth problem is a 401 or 403.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">lessons/04-skill</a> · evidence: <code>results/04-skill.md</code>.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

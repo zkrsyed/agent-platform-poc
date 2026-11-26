@@ -1,39 +1,41 @@
-"""ga4_guide, lesson 3 version.
+"""ga4_guide, lesson 4 version.
 
-Lesson 2 had no data access. Now it can read the table's real schema from Knowledge
-Catalog (hosted MCP server) and run read-only SQL on BigQuery.
+Lesson 3 added Knowledge Catalog (MCP) and BigQuery. Now the business rules also come from
+a skill, loaded only when needed, and the catalog is used only for what the skill lacks.
 """
+
+from pathlib import Path
 
 import google.auth
 from google.adk.agents import Agent
 from google.adk.integrations.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.integrations.bigquery.config import BigQueryToolConfig, WriteMode
+from google.adk.skills import load_skill_from_dir  # NEW
 from google.adk.tools import ToolContext
 from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
+from google.adk.tools.skill_toolset import SkillToolset  # NEW
 from google.auth.transport.requests import Request
 
 PROJECT = "kc-okf-poc-261122"
 MODEL = "gemini-3.5-flash"
+SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "ga4-context"  # NEW: repo_root/skills/ga4-context
 
-# NEW: your ADC login. Locally this is you; on Agent Runtime (lesson 8) it will be the agent identity.
 _creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
 
 
 def _catalog_headers(_context) -> dict[str, str]:
-    """NEW: runs before every MCP call, so the token never goes stale (they last about an hour)."""
+    """Runs before every MCP call, so the token never goes stale (they last about an hour)."""
     if not _creds.valid:
         _creds.refresh(Request())
     return {"Authorization": f"Bearer {_creds.token}", "x-goog-user-project": PROJECT}
 
 
-# NEW: Google's hosted Knowledge Catalog MCP server, read tools only.
 catalog = McpToolset(
     connection_params=StreamableHTTPConnectionParams(url="https://dataplex.googleapis.com/mcp"),
     header_provider=_catalog_headers,
     tool_filter=["search_entries", "lookup_context", "lookup_entry"],
 )
 
-# NEW: BigQuery, read-only, capped at 1 GB per query.
 bigquery = BigQueryToolset(
     tool_filter=["get_table_info", "execute_sql"],
     credentials_config=BigQueryCredentialsConfig(credentials=_creds),
@@ -43,6 +45,12 @@ bigquery = BigQueryToolset(
         max_query_result_rows=50,
         compute_project_id=PROJECT,
     ),
+)
+
+# NEW: the skill. We hide run_skill_script: a skill could carry code, and we don't need it.
+skills = SkillToolset(
+    skills=[load_skill_from_dir(SKILL_DIR)],
+    tool_filter=["list_skills", "load_skill", "load_skill_resource"],
 )
 
 
@@ -75,12 +83,15 @@ The analyst you are talking to: {user:analyst_name?} (team: {user:team?}).
 If the name above is empty, ask for their name and team once, then call `remember_analyst`.
 
 How to answer a data question:
-1. Look up the table in the Knowledge Catalog first (`lookup_context`, or `search_entries` if you
-   are unsure of the name). Use the real column names and notes you find there. Never guess columns.
-2. Write ONE read-only SQL query and run it with `execute_sql`. Follow any rules the catalog gives
-   you about partition filters.
-3. Answer in a few sentences, give the number, and show the SQL you ran.
+1. Load the skill `ga4-context` (`load_skill`) before writing any SQL, and follow its rules.
+   Read a reference file (`load_skill_resource`) only when the question needs it: revenue per
+   day, sessions, conversion, buyers.
+2. Use the Knowledge Catalog (`lookup_context`, or `search_entries` if unsure of the name) only
+   when you need a column or type that the skill does not give you.
+3. Write ONE read-only SQL query and run it with `execute_sql`.
+4. Answer in a few sentences, give the number, show the SQL you ran, and mention any rule that
+   changed the answer (for example, that the last 3 days were left out).
 If a tool fails, say what failed. Never invent figures.""",
-    tools=[remember_analyst, catalog, bigquery],  # NEW: two toolsets next to the function tool
+    tools=[remember_analyst, catalog, bigquery, skills],  # NEW: the skill toolset joins the list
     output_key="last_answer",
 )

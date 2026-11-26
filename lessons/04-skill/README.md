@@ -365,28 +365,49 @@ Fill in the same two tables as in Step 1, with the new runs. Then ask one more, 
 
 3. `Show me the names of the cities that spent the most.` Does it explain why it can't show cities, or does it break the rule?
 
+**Recorded 2026-11-26 (Langfuse):**
+
+| Check | Q1 run A | Q1 run B | Q1 run C |
+|---|---|---|---|
+| Filters on `event_date_dt` | ✓ | ✓ | ✓ |
+| USD columns | ✓ | ✓ | ✓ |
+| Refund wrapper (`IFNULL`) | ✓ | ✓ | ✓ |
+| Drops the last 3 days and says so | ✓ | ✓ | ✓ |
+| `load_skill` before SQL, then `net-revenue.md` | ✓ | ✓ | ✓ |
+| Calls the catalog | no | no | no |
+
+| Check | Q2 run A | Q2 run B | Q2 run C |
+|---|---|---|---|
+| Filters on `event_date_dt` | ✓ | ✓ | ✓ |
+| Shows **city-level** results | No ✓ (region and country, cites tier C3) | No ✓ | No ✓ |
+| Also dropped the last 3 days (not needed for a count) | yes | no | yes |
+
+Q3 (one clean run): it refused city names, cited tier C3, and rolled up to region. Two other Q3 attempts were cut off by rate limits.
+
 ## Step 7. Compare
 
 **Part 1: repeatability (the main question).** Put the Step 1 and Step 6 results side by side:
 
 | | Lesson 3 agent (Step 1) | Lesson 4 agent (Step 6) |
 |---|---|---|
-| Q1: how many of 3 runs followed all four checks? | | |
-| Q1: same final number in all 3 runs? | | |
-| Q2: how many of 3 runs showed city-level results? | | |
-| Did the agent call `load_skill` before SQL in all 3 runs? | n/a | |
+| Q1: how many of 3 runs followed all four checks? | **0 of 3** (all missed the 3-day rule) | **3 of 3** |
+| Q1: same SQL shape in all 3 runs? | yes (but without the 3-day rule) | yes (one query each, the same date limit) |
+| Q2: how many runs showed city-level results? | 1 of 2 partial attempts (SQL by `geo.city`) | **0 of 3** |
+| Did the agent call `load_skill` before SQL in all runs? | n/a | **yes, 7 of 7** |
 
 **Part 2: cost.** Open the traces in Langfuse (Observations view, newest first) and write the **typical run** (or the range over the 3) for each:
 
 | | Lesson 3 agent (Step 1) | Lesson 4 agent (Step 6) |
 |---|---|---|
-| Q1: model calls / biggest input / cost / seconds | | |
-| Q2: model calls / biggest input / cost / seconds | | |
+| Q1: model calls / biggest input / cost / seconds | 6 / about 35,000 / $0.117 to $0.137 / 23 to 33 | **4 / about 12,500 / $0.057 to $0.073** / 20 to 54 |
+| Q2: model calls / biggest input / cost / seconds | 3 / 39,045 / $0.065 / 13 (one run, shared a session: not comparable) | 5 to 7 / 12,900 to 14,200 / $0.062 to $0.106 / 26 to 38 |
 
 And answer in your own words:
-- In the trace, click the `load_skill` row. What does its **output** contain, and how long is it?
-- Did the agent read the reference file, or answer from `SKILL.md` alone?
-- Did it still call the catalog? Why do you think it did or didn't?
+- In the trace, click the `load_skill` row. What does its **output** contain, and how long is it? *(Recorded: the `SKILL.md` text with a short wrapper, 2,249 characters.)*
+- Did the agent read the reference file, or answer from `SKILL.md` alone? *(It read one reference file every time: `net-revenue.md` for Q1, `sessions-and-privacy.md` for Q2.)*
+- Did it still call the catalog? Why do you think it did or didn't? *(No. The instruction says to use the catalog only if the skill lacks something, and the skill had it.)*
+
+Full numbers and our answers to the check-yourself questions are in `results/04-skill.md` and in the Lesson 4 journal in `index.html`.
 
 **Don't assume the skill wins.** A skill saves tokens only if the agent loads the small thing instead of the big thing. If it still calls `lookup_context` out of habit, you'll see that here, and the fix is a clearer instruction, not more rules.
 

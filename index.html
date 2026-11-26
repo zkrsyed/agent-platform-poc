@@ -411,7 +411,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge done">done</span></td></tr>
     <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge done">done</span></td></tr>
     <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge done">done</span></td></tr>
     <tr><td>7</td><td><strong>Multi-agent in one app</strong></td><td>Orchestrator + sub-agents; transfer vs <code>AgentTool</code> vs Sequential/Parallel/Loop vs graph <code>Workflow</code>; single vs multi-agent score</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>8</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>9</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs tool calls and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
@@ -870,7 +870,7 @@ Knowledge Catalog
 </ul></div>
 </details>
 <details class="lesson" id="l6">
-<summary><span class="num">Lesson 6</span><span class="ttl">Evaluate the agent</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<summary><span class="num">Lesson 6</span><span class="ttl">Evaluate the agent</span><span class="when">2026-11-26</span><span class="badge done">done</span></summary>
 <div class="basics"><h4>The basics</h4>
 <p>An <strong>evaluation</strong> is a test suite for an agent. You write each question with a good answer once; <code>adk eval</code> runs the agent and <strong>scores</strong> each answer from 0 to 1 against a threshold. Because answers are free text, some checks use <strong>another model as the judge</strong>. A <strong>simulated user</strong> is a model that plays the user for a whole conversation, following a plan.</p>
 </div>
@@ -878,7 +878,7 @@ Knowledge Catalog
 <ul>
   <li>Part A: 5 questions from the kc-okf POC (3 need a policy rule) in <code>eval/ga4_questions.evalset.json</code>, scored on the <strong>tool path</strong> (<code>load_skill</code> then <code>execute_sql</code>), a <strong>reference answer</strong> and <strong>rubrics</strong>.</li>
   <li>Part B: one simulated <code>NOVICE</code> analyst asking for January revenue, then by city.</li>
-  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">lessons/06-evaluate</a>.</li>
+  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">lessons/06-evaluate</a>. Evidence: <code>results/06-evaluate.md</code>.</li>
 </ul>
 <h4>Facts checked before the lesson (verified 2026-11-26)</h4>
 <ul>
@@ -888,6 +888,21 @@ Knowledge Catalog
   <li>About $0.80 for both parts (Langfuse); eval runs show up in Langfuse as <code>invoke_workflow ga4_guide</code> traces.</li>
 </ul>
 <h4>Questions and answers</h4>
+<h4>What happened (verified 2026-11-26)</h4>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>Result</th><th>Answer</th></tr>
+<tr><td>Total sessions</td><td>pass</td><td>360,129 (plus an unasked "final days" count: the 72-hour rule leaking again)</td></tr>
+<tr><td>Net revenue, December</td><td>pass</td><td>$160,555</td></tr>
+<tr><td><strong>Engaged sessions, January</strong></td><td><strong>fail</strong></td><td>111,119 instead of 106,301: GA4's own flag, not our policy's definition. The tool path still passed: right tools, wrong meaning</td></tr>
+<tr><td>Top 5 cities</td><td>pass</td><td>refused cities (tier C3), gave regions</td></tr>
+<tr><td>Net revenue, January, final days</td><td>pass</td><td>$57,001, dropped 29 to 31 January</td></tr>
+<tr><td>Simulated <code>NOVICE</code> (Part B)</td><td>fail</td><td>task success 0.67, simulator quality 0.5</td></tr>
+</table></div>
+<ul>
+  <li><strong>Part A: 4 of 5</strong>, the same in the test run and your run.</li>
+  <li><strong>Part B failed mostly because of the test.</strong> The judge counted "no city split" as a miss although refusing cities is correct, and the simulator asked two things in one turn. One fair point: the agent's turn-2 answer was long for "a few sentences". Read the conversation before blaming the agent.</li>
+  <li>Cost of your two runs: <strong>$0.67</strong> (Langfuse; judge calls not included).</li>
+</ul>
 <h4>Same ideas, other names (docs/guess)</h4>
 <div class="table-wrap"><table>
 <tr><th>Idea</th><th>ADK</th><th>DeepEval</th><th>Ragas</th></tr>
@@ -906,9 +921,22 @@ Knowledge Catalog
 <tr><td>Suggests better prompts from failures</td><td>to check</td><td>prompt improvement</td><td>Vertex prompt optimizer, <code>adk optimize</code> (lesson 17)</td></tr>
 </table></div>
 <p>DeepEval and Ragas <strong>score</strong> answers; Langfuse and LangSmith <strong>store and run</strong> evaluations around traces, and can hold DeepEval or Ragas scores too. Ragas grew out of RAG, so its signature metrics judge <strong>retrieval</strong>: in lesson 5, okf_guide read 4 whole pages for one question, which a context-precision score would flag.</p>
+<div class="qa"><p class="q">What is a rubric?</p>
+<p>A yes/no checklist line a judge model checks, like a teacher's marking sheet: "the answer gives about $57,001", "the answer leaves out 29 to 31 January and says why". The score is the share of lines met. It needs no exact reference answer.</p></div>
+<div class="qa"><p class="q">What goes in the eval set, and what in the config?</p>
+<p>The eval set is the exam paper: question, reference answer, expected tools, rubrics, starting state. The config is the marking scheme: which metrics, their thresholds, which judge. Thresholds live only in the config.</p></div>
+<div class="qa"><p class="q">Eval set vs simulated eval set?</p>
+<p>In an eval set you write every user message, word for word: a regression test. In a simulated set you write only the first message, a plan and a persona (<code>NOVICE</code>, <code>EXPERT</code> or your own), and a model writes the user's next messages from the agent's replies: a test of messy, multi-turn behavior.</p></div>
 <div class="qa"><p class="q">Will we also look at Google's own traces, not just Langfuse?</p>
 <p>Yes: lesson 16 compares Cloud Trace and Langfuse span by span (agent, model, tool and MCP calls, tokens, A2A hops). <code>adk web</code> already has <code>--otel_to_cloud</code> and <code>--trace_to_cloud</code> (<strong>verified</strong> in ADK 2.15), so we can try it locally first.</p></div>
-<p class="diagram-note">Results will be added when you've run it.</p>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">lessons/06-evaluate</a> · evidence: <code>results/06-evaluate.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>An eval is a test suite for an agent: write the question and what good looks like once, run it after every change.</li>
+<li>Use more than one kind of check: the right tools can still give the wrong meaning (<code>q11</code>).</li>
+<li>A judge model grades free text; rubrics make its job concrete.</li>
+<li>When a simulated run fails, read the conversation: the judge or the simulator can be the problem.</li>
+</ul></div>
 </details>
 
 <h2 id="glossary">Glossary</h2>

@@ -1,0 +1,19 @@
+{
+  "eval_set_id": "ga4_simulated",
+  "name": "GA4 simulated user",
+  "eval_cases": [
+    {
+      "eval_id": "confused_analyst_january_revenue",
+      "conversation_scenario": {
+        "starting_prompt": "hi, my boss wants the january revenue numbers, can you help",
+        "conversation_plan": "You are Sam from the merch analytics team. If the agent asks for your name and team, give them. You want net merch revenue for January 2021. You don't know what 'final days' means: if the agent mentions it, ask what it means and why it matters. Then ask for the same revenue split by city, because your boss asked for cities. If the agent says cities are not allowed, accept regions instead. Your goal is complete once you have the January number and a breakdown you are allowed to see.",
+        "user_persona": "NOVICE"
+      },
+      "session_input": {
+        "app_name": "ga4_guide",
+        "user_id": "sim_user",
+        "state": {}
+      }
+    }
+  ]
+}

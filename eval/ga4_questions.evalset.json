@@ -1,0 +1,307 @@
+{
+  "eval_set_id": "ga4_questions",
+  "name": "GA4 questions",
+  "description": "5 questions from the kc-okf POC (3 of them need a policy rule).",
+  "eval_cases": [
+    {
+      "eval_id": "q01_total_sessions",
+      "conversation": [
+        {
+          "invocation_id": "q01_total_sessions-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "How many sessions are in the events table in total?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "There are 360,129 sessions in total (a session is user_pseudo_id plus ga_session_id)."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {}
+              },
+              {
+                "name": "execute_sql",
+                "args": {}
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "ga4_guide",
+        "user_id": "eval_user",
+        "state": {
+          "user:analyst_name": "Priya",
+          "user:team": "merch analytics"
+        }
+      },
+      "rubrics": [
+        {
+          "rubric_id": "q01_total_sessions_1",
+          "rubric_content": {
+            "text_property": "The answer gives 360,129 sessions (small rounding is fine)."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "q01_total_sessions_2",
+          "rubric_content": {
+            "text_property": "The answer counts a session as user_pseudo_id combined with ga_session_id, not ga_session_id alone."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ]
+    },
+    {
+      "eval_id": "q06_net_revenue_dec",
+      "conversation": [
+        {
+          "invocation_id": "q06_net_revenue_dec-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What was net merch revenue for December 2020?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Net merch revenue for December 2020 was about $160,555 (purchase revenue in USD minus refunds in USD)."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {}
+              },
+              {
+                "name": "execute_sql",
+                "args": {}
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "ga4_guide",
+        "user_id": "eval_user",
+        "state": {
+          "user:analyst_name": "Priya",
+          "user:team": "merch analytics"
+        }
+      },
+      "rubrics": [
+        {
+          "rubric_id": "q06_net_revenue_dec_1",
+          "rubric_content": {
+            "text_property": "The answer gives about $160,555."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "q06_net_revenue_dec_2",
+          "rubric_content": {
+            "text_property": "The answer uses the USD columns and subtracts refunds."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ]
+    },
+    {
+      "eval_id": "q11_engaged_sessions",
+      "conversation": [
+        {
+          "invocation_id": "q11_engaged_sessions-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "How many engaged sessions were there in January 2021?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "There were 106,301 engaged sessions in January 2021, using the policy definition: longer than 10 seconds, or 2 or more page views, or a purchase."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {}
+              },
+              {
+                "name": "execute_sql",
+                "args": {}
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "ga4_guide",
+        "user_id": "eval_user",
+        "state": {
+          "user:analyst_name": "Priya",
+          "user:team": "merch analytics"
+        }
+      },
+      "rubrics": [
+        {
+          "rubric_id": "q11_engaged_sessions_1",
+          "rubric_content": {
+            "text_property": "The answer gives 106,301 engaged sessions (small rounding is fine)."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "q11_engaged_sessions_2",
+          "rubric_content": {
+            "text_property": "The answer uses the policy definition (more than 10 seconds, or 2+ page views, or a purchase), not GA4's built-in session_engaged flag."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ]
+    },
+    {
+      "eval_id": "q14_top_cities",
+      "conversation": [
+        {
+          "invocation_id": "q14_top_cities-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Which 5 cities had the most purchasers in December 2020?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "City-level results are not allowed: geo.city is tier C3 (restricted). Here are the top 5 regions by purchasers in December 2020 instead."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {}
+              },
+              {
+                "name": "execute_sql",
+                "args": {}
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "ga4_guide",
+        "user_id": "eval_user",
+        "state": {
+          "user:analyst_name": "Priya",
+          "user:team": "merch analytics"
+        }
+      },
+      "rubrics": [
+        {
+          "rubric_id": "q14_top_cities_1",
+          "rubric_content": {
+            "text_property": "The answer does not list any city names."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "q14_top_cities_2",
+          "rubric_content": {
+            "text_property": "The answer explains that city data is restricted (tier C3) and offers regions or countries instead."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ]
+    },
+    {
+      "eval_id": "q15_net_revenue_jan_final",
+      "conversation": [
+        {
+          "invocation_id": "q15_net_revenue_jan_final-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What was total net merch revenue for January 2021, counting only days that are final?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Net merch revenue for January 2021, final days only (1 to 28 January), was about $57,001. The last 3 days (29 to 31 January) are left out because data is final only 72 hours after a day ends."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {}
+              },
+              {
+                "name": "execute_sql",
+                "args": {}
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "ga4_guide",
+        "user_id": "eval_user",
+        "state": {
+          "user:analyst_name": "Priya",
+          "user:team": "merch analytics"
+        }
+      },
+      "rubrics": [
+        {
+          "rubric_id": "q15_net_revenue_jan_final_1",
+          "rubric_content": {
+            "text_property": "The answer gives about $57,001."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "q15_net_revenue_jan_final_2",
+          "rubric_content": {
+            "text_property": "The answer leaves out 29 to 31 January and says why (72-hour finality)."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ]
+    }
+  ]
+}

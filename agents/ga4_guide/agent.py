@@ -8,6 +8,7 @@ from pathlib import Path
 
 import google.auth
 from google.adk.agents import Agent
+from google.adk.models import Gemini
 from google.adk.integrations.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.integrations.bigquery.config import BigQueryToolConfig, WriteMode
 from google.adk.skills import load_skill_from_dir  # NEW
@@ -16,9 +17,17 @@ from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 from google.adk.tools.skill_toolset import SkillToolset  # NEW
 from google.auth.transport.requests import Request
 
+
 PROJECT = "kc-okf-poc-261122"
-MODEL = "gemini-3.5-flash"
-SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "ga4-context"  # NEW: repo_root/skills/ga4-context
+# Lesson 8: gemini-3.5-flash is served only from the "global" location, but a deployed agent runs in a
+# region (us-central1), so we pin the model's location here instead of relying on GOOGLE_CLOUD_LOCATION.
+MODEL = Gemini(model="gemini-3.5-flash", client_kwargs={"enterprise": True, "location": "global"})
+
+_HERE = Path(__file__).resolve().parent
+# Lesson 8: a deployed copy carries the skill inside its own folder; locally it's in repo_root/skills.
+SKILL_DIR = next(
+    d for d in (_HERE / "skills" / "ga4-context", _HERE.parents[1] / "skills" / "ga4-context") if d.is_dir()
+)
 
 _creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
 

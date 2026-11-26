@@ -28,3 +28,4 @@ credentials*.json
 # Local-only
 trash/
 .private-strings
+build/

@@ -419,7 +419,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge done">done</span></td></tr>
     <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge done">done</span></td></tr>
     <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>8</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">Deploy to Agent Runtime</a></strong> <span class="cost">☁</span></td><td><code>adk deploy agent_engine</code> of a clean build copy (skill inside, no Langfuse key), Agent Identity, scale to zero; the deliberate first 403</td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>8</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">Deploy to Agent Runtime</a></strong> <span class="cost">☁</span></td><td><code>adk deploy agent_engine</code> of a clean build copy (skill inside, no Langfuse key), Agent Identity, scale to zero; the deliberate first 403</td><td><span class="badge done">done</span></td></tr>
     <tr><td>9</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs tool calls and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>10</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry metadata; skill loaded from Skill Registry; MCP server used from 3 clients; optional Claude Code plugin</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>11</td><td><strong>Agent Gateway + governance</strong> <span class="cost">☁</span></td><td>Egress policy per principal; block <code>modify_entry</code> on the network; ENFORCED; Model Armor; semantic governance</td><td><span class="badge planned">planned</span></td></tr>
@@ -1057,19 +1057,71 @@ root_agent = Workflow(name="ga4_flow", edges=[
 </ul></div>
 </details>
 <details class="lesson" id="l8">
-<summary><span class="num">Lesson 8</span><span class="ttl">Deploy to Agent Runtime</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<summary><span class="num">Lesson 8</span><span class="ttl">Deploy to Agent Runtime</span><span class="when">2026-11-26</span><span class="badge done">done</span></summary>
 <div class="basics"><h4>The basics</h4>
-<p><strong>Agent Runtime</strong> is Google's managed hosting for agents (formerly Vertex AI Agent Engine). <code>adk deploy agent_engine</code> packages one agent folder, builds a container and starts it. With <strong>Agent Identity</strong> the deployed agent acts as <em>itself</em> (its own principal), not as you, so it can do only what it's been allowed. The first call to BigQuery is expected to fail with 403 until lesson 9 grants roles.</p>
+<p><strong>Agent Runtime</strong> is Google's managed hosting for agents (formerly Vertex AI Agent Engine; the console calls the product Gemini Platform / Agent Platform). <code>adk deploy agent_engine</code> uploads <strong>one folder</strong>, builds a container and starts it. With <strong>Agent Identity</strong> the deployed agent is its own <strong>principal</strong> ("who is making this call"), so it can do only what it has been allowed, not what <em>you</em> can do.</p>
 </div>
-<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+
+<h4>Who is "who": locally vs deployed</h4>
+<pre class="diagram">Locally (adk web):
+  you ──► agent code ──► BigQuery        every call arrives as YOU (your ADC login)  -&gt; works
+
+Deployed (Agent Runtime):
+  you ──(1)──► ga4-guide ──(2)──► BigQuery
+       principal = you      principal = the agent:
+                            principal://agents.global.proj-NUMBER.system.id.goog/.../reasoningEngines/ID
+                            no BigQuery role yet  -&gt; 403</pre>
 <ul>
-  <li><strong><code>adk deploy</code> uploads every value in the agent folder's <code>.env</code></strong> as an environment variable. Ours holds the Langfuse key, so we deploy a clean copy built by <code>scripts/stage_deploy.py</code>.</li>
-  <li><strong>Only the agent folder is uploaded</strong>, so the skill is copied inside the build folder.</li>
-  <li><strong><code>gemini-3.5-flash</code> returns 404 in <code>us-central1</code></strong> and works on <code>global</code>; we pin the model's location in code with <code>Gemini(..., client_kwargs={"location": "global"})</code>. The built copy answered with the region set to <code>us-central1</code>.</li>
-  <li><code>vertexai.Client</code> is deprecated in favor of <code>agentplatform.Client</code>, which calls deployed agents <code>runtimes</code>. No agents are deployed yet in the project.</li>
-  <li>Docs: identity via <code>"identity_type": "AGENT_IDENTITY"</code> in <code>.agent_engine_config.json</code>; <code>min_instances</code> defaults to 1 (we set 0); idle time isn't billed while that feature is in Preview.</li>
+  <li><strong>Agent identity vs a shared service account:</strong> with one shared account, every agent gets the same permissions and the logs can't tell them apart. With agent identity, each deployed agent has its own principal, its own roles, its own name in the audit logs, and it disappears when the agent is deleted. Like a managed identity per app in Azure.</li>
+  <li>The same code line, <code>google.auth.default()</code>, gives your login locally and the agent's identity when deployed. <strong>Where it runs decides who it is.</strong></li>
 </ul>
-<p class="diagram-note">Results will be added after we deploy together.</p>
+
+<h4>How we deployed</h4>
+<pre class="diagram">agents/ga4_guide/agent.py, __init__.py ──copy──►  build/ga4_guide/agent.py, __init__.py
+skills/ga4-context/                   ──copy──►  build/ga4_guide/skills/ga4-context/   (only the folder is uploaded)
+agents/ga4_guide/.env (Langfuse key)      ✗      build/ga4_guide/.env  (3 GOOGLE_* lines only)
+                                                 build/ga4_guide/requirements.txt  google-adk[a2a,agent-identity,mcp,gcp]
+                                                 build/ga4_guide/.agent_engine_config.json  AGENT_IDENTITY, min 0, max 1
+                                                          │
+                                   adk deploy agent_engine --region us-central1 build/ga4_guide</pre>
+<ul>
+  <li><code>scripts/stage_deploy.py</code> builds that clean folder (like <code>dotnet publish</code>); <code>scripts/runtime.py</code> is a remote control: <code>info</code>, <code>ask</code>, <code>delete</code>.</li>
+  <li><code>agent.py</code> pins the model's location: <code>Gemini(model="gemini-3.5-flash", client_kwargs={"enterprise": True, "location": "global"})</code>, because the model returned 404 in <code>us-central1</code>.</li>
+</ul>
+
+<h4>What happened (verified 2026-11-26)</h4>
+<ul>
+  <li><strong>First deploy failed:</strong> "container failed to start". The container log showed <code>cannot import name 'McpToolset'</code>: without a <code>requirements.txt</code> the image gets only <code>google-adk[a2a]</code>, no <code>mcp</code>. ADK deleted the failed instance. With <code>requirements.txt</code> the second deploy worked in <strong>2 min 54 s</strong>.</li>
+  <li><code>runtime.py info</code>: <code>identity type: AGENT_IDENTITY</code>, runs as <code>agents.global.proj-NUMBER.system.id.goog/.../reasoningEngines/7105399555822190592</code> (<code>proj-</code> because the project has no organization).</li>
+  <li><code>runtime.py ask</code>: Gemini and the skill worked; <code>execute_sql</code> and <code>get_table_info</code> got <strong>403</strong> ("User does not have <code>bigquery.jobs.create</code>"; "User" = the agent); the catalog MCP calls failed with a generic "Server returned an error response". The agent retried about 8 times, then explained the permission error.</li>
+</ul>
+<div class="table-wrap"><table>
+<tr><th>Console page (Agents → Scale → Deployments → ga4-guide)</th><th>What we saw</th><th>When we turn it on</th></tr>
+<tr><td>Playground</td><td>works, like <code>adk web</code></td><td>now</td></tr>
+<tr><td>Traces, Dashboard</td><td>"not available", "No data"</td><td>redeploy with <code>--otel_to_cloud</code> (lesson 16, maybe sooner)</td></tr>
+<tr><td>Sessions, Memory Bank, Identity, Security</td><td>"API not enabled: apphub.googleapis.com" or greyed out</td><td>enable App Hub (cost checked first), lessons 9 and 13</td></tr>
+<tr><td>Agent Registry</td><td>"Enable Agent Registry API"</td><td>lesson 10</td></tr>
+<tr><td>Policies, Gateways</td><td>API or network setup</td><td>lesson 11</td></tr>
+<tr><td>Topology</td><td>"A project owned by an organization is required"</td><td>lesson 16, only if we get an organization</td></tr>
+</table></div>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">What does "principal" mean?</p>
+<p>Who is making the call: the thing IAM checks before allowing it, like .NET's <code>ClaimsPrincipal</code>. People, service accounts and agent identities are all principals. <code>principal://</code> marks the string as a principal ID; the parts after it go from general (the agents directory for this project) to specific (<code>reasoningEngines/ID</code>, this one agent).</p></div>
+<div class="qa"><p class="q">Is the "who" me or the agent?</p>
+<p>Both, in different calls. When you ask the agent, the principal is you. When the agent calls BigQuery, the principal is the agent. The agent does not borrow your permissions, which is why it gets 403 although you have access.</p></div>
+<div class="qa"><p class="q">Why can't we deploy <code>agents/ga4_guide</code> as it is?</p>
+<p>Only that folder is uploaded (the skill is outside it), and every line of its <code>.env</code> becomes a cloud setting (it holds the Langfuse key). <code>stage_deploy.py</code> builds a clean folder instead.</p></div>
+<div class="qa"><p class="q">Where does our agent show up in the console, and why are pages empty?</p>
+<p>Agents → Scale → Deployments → <code>ga4-guide</code>. Traces need <code>--otel_to_cloud</code>; Sessions and Memory Bank need the App Hub API; Registry, Policies and Gateways come in lessons 10 and 11; Topology needs an organization. Agent Garden is Google's sample agents, not ours.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">lessons/08-deploy</a> · evidence: <code>results/08-deploy.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>A deployed agent acts as itself: its own principal, only its own roles. A 403 means "not allowed yet", not "broken".</li>
+<li><code>adk deploy</code> uploads one folder, including its <code>.env</code>: build a clean copy.</li>
+<li>When a deploy fails, read the container log.</li>
+<li>Every console feature has a switch (an API, a flag, an organization); we turn each on when its lesson comes.</li>
+</ul></div>
 </details>
 
 <h2 id="glossary">Glossary</h2>

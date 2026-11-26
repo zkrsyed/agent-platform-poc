@@ -410,7 +410,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>2</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/02-first-agent/README.md">First ADK agent</a></strong></td><td>Agent, Runner, Session, State, Events; the <code>adk web</code> dev UI; first traces in Langfuse</td><td><span class="badge done">done</span></td></tr>
     <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge done">done</span></td></tr>
     <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge done">done</span></td></tr>
-    <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge done">done</span></td></tr>
     <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>7</td><td><strong>Multi-agent in one app</strong></td><td>Orchestrator + sub-agents; transfer vs <code>AgentTool</code> vs Sequential/Parallel/Loop vs graph <code>Workflow</code>; single vs multi-agent score</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>8</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
@@ -792,14 +792,14 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
 </details>
 
 <details class="lesson" id="l5">
-<summary><span class="num">Lesson 5</span><span class="ttl">Our own MCP server</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<summary><span class="num">Lesson 5</span><span class="ttl">Our own MCP server</span><span class="when">2026-11-26</span><span class="badge done">done</span></summary>
 <div class="basics"><h4>The basics</h4>
 <p>In lesson 3 we used other people's MCP servers. Now we write one: a small program that serves the catalog's pages about our table (the ones Knowledge Studio wrote) <strong>by name</strong>, reading them <strong>live from Knowledge Catalog</strong>, so <strong>any</strong> agent can fetch them, not just one that carries the skill folder. A server offers three kinds of things: <strong>tools</strong> (the model chooses), <strong>resources</strong> (the application attaches) and <strong>prompts</strong> (the user picks).</p>
 </div>
 <h4>What we're doing</h4>
 <ul>
   <li>Build <code>mcp_servers/okf/server.py</code> with three tools (<code>list_pages</code>, <code>get_page</code>, <code>search_pages</code>), a resource template <code>okf://pages/{name}</code> and one prompt. Run it over <strong>stdio</strong> (a client starts it as a child process) and over <strong>Streamable HTTP</strong> (it listens on port 8808). Then a small agent, <code>okf_guide</code>, uses only this server.</li>
-  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">lessons/05-own-mcp-server</a>. The Cloud Run part (Part B) is written as a plan only; we run it after we agree.</li>
+  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">lessons/05-own-mcp-server</a>. Evidence: <code>results/05-own-mcp-server.md</code>. The Cloud Run part (Part B) is written as a plan only; we run it after we agree.</li>
 </ul>
 <h4>Facts checked before the lesson (verified 2026-11-26)</h4>
 <ul>
@@ -823,6 +823,21 @@ Knowledge Catalog
    (kcmd mcp serves them;
     they drift)</pre>
 <h4>Questions and answers</h4>
+<h4>What happened (verified 2026-11-26)</h4>
+<div class="table-wrap"><table>
+<tr><th>Step</th><th>Result</th></tr>
+<tr><td>1. List the pages</td><td>8 entries in the context set, all made in the kc-okf POC (Studio, plus the hand-written playbook pushed with <code>kcmd push</code>). Nothing in this lesson creates entries.</td></tr>
+<tr><td>3. stdio</td><td>3 tools; <code>search_pages('72')</code> found the 72-hour rule on the <code>events</code> page and the metrics page; result parts <code>['content', 'isError']</code>.</td></tr>
+<tr><td>4. HTTP</td><td>Same output on port 8808. "All connection attempts failed" meant the server wasn't running yet: start it first.</td></tr>
+<tr><td>5. Duplicate copy</td><td>With <code>@mcp.tool()</code> the count was <code>1</code> (<code>structuredContent</code> appears); with <code>structured_output=False</code> it's <code>0</code>.</td></tr>
+<tr><td>5b. Cache</td><td>Off: 2.00 / 1.69 / 1.59 s. 60 s cache: 1.87 / 0.00 / 0.00 s.</td></tr>
+<tr><td>7. okf_guide</td><td>7 tool calls (list, 2 searches, 4 pages), 8 model calls, <strong>$0.059</strong>; correct answer citing the pages. ga4_guide on the same question: 3 to 6 tool calls, $0.049 to $0.096, correct, no sources.</td></tr>
+</table></div>
+<ul>
+  <li><strong>Small menu, small start.</strong> okf_guide's first model call was 475 tokens; ga4_guide's was 9,658 (long instruction, four toolsets).</li>
+  <li><strong>Gemini caches repeated input by itself.</strong> ga4_guide's later calls each had about 7,200 <code>input_cached_tokens</code> (its instruction and tool definitions), billed at a lower rate (<strong>docs</strong>). So gemini-3.5-flash does implicit caching: a head start for lesson 23.</li>
+  <li><strong>okf_guide read more than it needed</strong>: all 4 pages after its searches. A tighter instruction could cut that (not tested).</li>
+</ul>
 <div class="qa"><p class="q">Does Studio fill in the column descriptions on the table entry?</p>
 <p>No (<strong>verified</strong>). Even when asked to, it wrote the column meanings as text in its pages and left 0 of 24 columns described on the BigQuery table entry. The table entry mirrors BigQuery; the pages live in the context set and link to the table. Why Google designed it that way is a <strong>guess</strong>: real column descriptions belong in BigQuery.</p></div>
 <div class="qa"><p class="q">What do kcmd and OKF do, and why read the catalog live instead?</p>
@@ -831,11 +846,28 @@ Knowledge Catalog
 <p>Mostly a <strong>guess</strong>: for agents that can't reach Google, for editing pages like code (editor, Git, bulk push), to save tokens (files used about a third of MCP's tokens, <strong>verified</strong> in kc-okf), and for an open format that any vendor's tools can read.</p></div>
 <div class="qa"><p class="q">Where does caching fit?</p>
 <p>In three places. <strong>Data</strong>: our server can keep a page for a few seconds (lesson 5, Step 5b: a repeated search went from about 2 s to 0.00 s, <strong>verified</strong>), at the price of a page being up to that old. <strong>Tool results</strong>: an agent can keep a fetched page in session state for the rest of the conversation. <strong>Model input</strong>: Gemini can reuse the repeated start of a long prompt at a lower price; that's where the money is (lesson 4's biggest input was about 35K tokens, resent on every call). Lesson 23, taken after lesson 6, measures the last two.</p></div>
+<div class="qa"><p class="q">Google's catalog server already has tools for this. Why write our own?</p>
+<p>Mostly to learn the server side. Google's 15 tools can probably fetch a page too (<strong>guess</strong>, not tested). Ours adds a smaller menu (3 tools for one job), control over the output (no duplicate copy), and something of our own to deploy, register and guard later (lessons 10 and 11). In real projects you write one when the data has no ready-made server.</p></div>
+<div class="qa"><p class="q">Which functions in <code>server.py</code> are MCP tools?</p>
+<p>Only the decorated ones. <code>@mcp.tool</code>, <code>@mcp.resource</code> and <code>@mcp.prompt</code> register a function; its name, docstring and type hints become what clients see. <code>_get</code>, <code>_page_names</code> and <code>_read</code> have no decorator: helpers that clients never see. A server can offer tools, resources and prompts, plus an <code>instructions</code> note.</p></div>
+<div class="qa"><p class="q">Where does the cache live, and can we cache Google's server?</p>
+<p>In our server's process memory, between the server and the catalog API. With stdio each client starts a fresh process, so the cache starts empty; an HTTP server keeps it while it runs and shares it with every caller. For someone else's server you can only cache on your side: an ADK callback or plugin, or session state (lesson 23).</p></div>
+<div class="qa"><p class="q">Does <code>adk web agents</code> start every agent?</p>
+<p>It starts one web server that lists every agent folder and loads an agent when you first use it. The dropdown picks which one gets your message. Our first question went to <code>ga4_guide</code> by mistake because it comes first alphabetically.</p></div>
+<div class="qa"><p class="q">Is okf_guide reading local files?</p>
+<p>No. Each <code>get_page</code> goes agent → our server (port 8808) → Knowledge Catalog, and comes back with the approved page. ga4_guide's skill is the copy; okf_guide's pages are live.</p></div>
 <div class="qa"><p class="q">Why build an MCP server when we already have a skill?</p>
 <p>A skill only helps an agent that carries the folder. An MCP server serves the same pages to any agent, and a page can change without redeploying the agents. It's also the piece that gets deployed, registered and guarded on its own later.</p></div>
 <div class="qa"><p class="q">stdio or HTTP?</p>
 <p>stdio: the client starts the server as a child process and talks through its input and output. No port, no login, private to one machine. HTTP: the server runs by itself at a URL and many agents can share it, so it must be secured (Part B).</p></div>
-<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">lessons/05-own-mcp-server</a>. Results will be added when you've run it.</p>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">lessons/05-own-mcp-server</a> · evidence: <code>results/05-own-mcp-server.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>An MCP server is a program that offers <strong>tools</strong> (the model picks), <strong>resources</strong> (the app attaches) and <strong>prompts</strong> (the user picks). A decorator is what makes a function visible.</li>
+<li><strong>stdio</strong>: the client starts the server. <strong>HTTP</strong>: you start it first, and then it must be secured.</li>
+<li>Read the source of truth live; a copy (skill, <code>kcmd pull</code>) drifts. A short cache is drift with a known limit.</li>
+<li>The duplicate <code>structuredContent</code> is a server setting: ours is off, Google's we can't change.</li>
+</ul></div>
 </details>
 
 <h2 id="glossary">Glossary</h2>

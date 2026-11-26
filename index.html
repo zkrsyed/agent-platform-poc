@@ -411,7 +411,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge done">done</span></td></tr>
     <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge done">done</span></td></tr>
     <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge progress">in progress</span></td></tr>
     <tr><td>7</td><td><strong>Multi-agent in one app</strong></td><td>Orchestrator + sub-agents; transfer vs <code>AgentTool</code> vs Sequential/Parallel/Loop vs graph <code>Workflow</code>; single vs multi-agent score</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>8</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>9</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs tool calls and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
@@ -421,7 +421,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>13</td><td><strong>Memory</strong> <span class="cost">☁</span></td><td>Session vs Memory Bank (optional)</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>14</td><td><strong>Web GUI</strong> <span class="cost">☁</span></td><td>A chat page with login on Cloud Run calling the deployed agent; Gemini Enterprise app compared</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>15</td><td><strong>A2UI</strong> <span class="cost">☁</span></td><td>Results as an A2UI table, a picker for ambiguous questions; AG-UI and MCP Apps compared</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>16</td><td><strong>Observability: Google vs Langfuse</strong> <span class="cost">☁</span></td><td>OpenTelemetry, Cloud Trace, Topology; the same multi-agent trace in Langfuse</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>16</td><td><strong>Observability: Google vs Langfuse</strong> <span class="cost">☁</span></td><td>OpenTelemetry, Cloud Trace, Topology; the same multi-agent trace in Langfuse, compared span by span (agent, model, tool and MCP calls, tokens, A2A hops)</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>17</td><td><strong>Optimize</strong> <span class="cost">☁</span></td><td>Online evaluation with AutoRaters; Google's optimizer vs <code>adk optimize</code> (GEPA); re-score</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>18</td><td><strong>Three ways to build</strong> <span class="cost">☁</span></td><td>Agent Studio vs Managed Agents API vs ADK (optional)</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>19</td><td><strong>CI/CD for the deployables</strong> <span class="cost">☁</span></td><td>A pipeline each for agents, MCP server and skill; eval gate; WIF; update vs re-create; rollback</td><td><span class="badge planned">planned</span></td></tr>
@@ -868,6 +868,29 @@ Knowledge Catalog
 <li>Read the source of truth live; a copy (skill, <code>kcmd pull</code>) drifts. A short cache is drift with a known limit.</li>
 <li>The duplicate <code>structuredContent</code> is a server setting: ours is off, Google's we can't change.</li>
 </ul></div>
+</details>
+<details class="lesson" id="l6">
+<summary><span class="num">Lesson 6</span><span class="ttl">Evaluate the agent</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>An <strong>evaluation</strong> is a test suite for an agent. You write each question with a good answer once; <code>adk eval</code> runs the agent and <strong>scores</strong> each answer from 0 to 1 against a threshold. Because answers are free text, some checks use <strong>another model as the judge</strong>. A <strong>simulated user</strong> is a model that plays the user for a whole conversation, following a plan.</p>
+</div>
+<h4>What we're doing</h4>
+<ul>
+  <li>Part A: 5 questions from the kc-okf POC (3 need a policy rule) in <code>eval/ga4_questions.evalset.json</code>, scored on the <strong>tool path</strong> (<code>load_skill</code> then <code>execute_sql</code>), a <strong>reference answer</strong> and <strong>rubrics</strong>.</li>
+  <li>Part B: one simulated <code>NOVICE</code> analyst asking for January revenue, then by city.</li>
+  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">lessons/06-evaluate</a>.</li>
+</ul>
+<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+<ul>
+  <li><strong>Part A test run: 4 of 5 passed.</strong> <code>q11</code> (engaged sessions) failed: the agent used GA4's own <code>session_engaged</code> flag (111,119) instead of the policy definition (106,301), and also dropped the last 3 days from a session count. Its tool path still passed: right tools, wrong meaning.</li>
+  <li><strong>Rubrics need <code>"type": "FINAL_RESPONSE_QUALITY"</code></strong>, or the rubric metric reports <code>NOT_EVALUATED</code> ("Rubrics are required.").</li>
+  <li><strong>Part B test run failed</strong>: task success 0.71, simulator quality 0.5. The simulator asked two things in one turn, so it was graded down too.</li>
+  <li>About $0.80 for both parts (Langfuse); eval runs show up in Langfuse as <code>invoke_workflow ga4_guide</code> traces.</li>
+</ul>
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Will we also look at Google's own traces, not just Langfuse?</p>
+<p>Yes: lesson 16 compares Cloud Trace and Langfuse span by span (agent, model, tool and MCP calls, tokens, A2A hops). <code>adk web</code> already has <code>--otel_to_cloud</code> and <code>--trace_to_cloud</code> (<strong>verified</strong> in ADK 2.15), so we can try it locally first.</p></div>
+<p class="diagram-note">Results will be added when you've run it.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

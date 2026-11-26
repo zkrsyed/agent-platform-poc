@@ -410,7 +410,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>2</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/02-first-agent/README.md">First ADK agent</a></strong></td><td>Agent, Runner, Session, State, Events; the <code>adk web</code> dev UI; first traces in Langfuse</td><td><span class="badge done">done</span></td></tr>
     <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge done">done</span></td></tr>
     <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge done">done</span></td></tr>
-    <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge progress">in progress</span></td></tr>
     <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>7</td><td><strong>Multi-agent in one app</strong></td><td>Orchestrator + sub-agents; transfer vs <code>AgentTool</code> vs Sequential/Parallel/Loop vs graph <code>Workflow</code>; single vs multi-agent score</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>8</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
@@ -788,6 +788,31 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
 <li>A skill is knowledge, not enforcement. Hard guarantees need code-level guardrails (lessons 9 and 11).</li>
 <li>The <code>description</code> decides whether the skill is ever loaded.</li>
 </ul></div>
+</details>
+
+<details class="lesson" id="l5">
+<summary><span class="num">Lesson 5</span><span class="ttl">Our own MCP server</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>In lesson 3 we used other people's MCP servers. Now we write one: a small program that serves the OKF pages (the rules about our table) <strong>by name</strong>, so <strong>any</strong> agent can fetch them, not just one that carries the skill folder. A server offers three kinds of things: <strong>tools</strong> (the model chooses), <strong>resources</strong> (the application attaches) and <strong>prompts</strong> (the user picks).</p>
+</div>
+<h4>What we're doing</h4>
+<ul>
+  <li>Build <code>mcp_servers/okf/server.py</code> with three tools (<code>list_pages</code>, <code>get_page</code>, <code>search_pages</code>), a resource template <code>okf://pages/{name}</code> and one prompt. Run it over <strong>stdio</strong> (a client starts it as a child process) and over <strong>Streamable HTTP</strong> (it listens on port 8808). Then a small agent, <code>okf_guide</code>, uses only this server.</li>
+  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">lessons/05-own-mcp-server</a>. The Cloud Run part (Part B) is written as a plan only; we run it after we agree.</li>
+</ul>
+<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+<ul>
+  <li><strong><code>FastMCP</code> is now <code>MCPServer</code>.</strong> In the installed <code>mcp</code> 2.3.0, <code>mcp.server.fastmcp</code> no longer imports and says so; the class is <code>mcp.server.mcpserver.MCPServer</code>. No new package is needed (it came with ADK).</li>
+  <li>The server's code was tested in a scratch copy: three tools listed and called over <strong>stdio</strong> and over <strong>HTTP</strong>; the resource template and the prompt work; <code>okf_guide</code> called <code>get_page</code> and answered with the page names as sources.</li>
+  <li><strong>The duplicate copy comes from the server SDK.</strong> By default a tool result carries the same data twice (<code>content</code> and <code>structuredContent</code>), as we saw with Google's catalog in lesson 3. With <code>@mcp.tool(structured_output=False)</code> the copy is gone (counted: 0 left). When we write the server we control this; on Google's hosted server we can't.</li>
+  <li>The three pages are 3,834, 8,544 and 1,900 characters, far less than the catalog's 36,700 (sent twice).</li>
+</ul>
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Why build an MCP server when we already have a skill?</p>
+<p>A skill only helps an agent that carries the folder. An MCP server serves the same pages to any agent, and a page can change without redeploying the agents. It's also the piece that gets deployed, registered and guarded on its own later.</p></div>
+<div class="qa"><p class="q">stdio or HTTP?</p>
+<p>stdio: the client starts the server as a child process and talks through its input and output. No port, no login, private to one machine. HTTP: the server runs by itself at a URL and many agents can share it, so it must be secured (Part B).</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">lessons/05-own-mcp-server</a>. Results will be added when you've run it.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

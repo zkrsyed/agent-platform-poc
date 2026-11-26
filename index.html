@@ -376,7 +376,7 @@ details.lesson li{margin:4px 0}
     <tr><td>0</td><td><strong>Map</strong></td><td>The whole stack and how the pieces connect (this page)</td><td><span class="badge done">done</span></td></tr>
     <tr><td>1</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/01-setup/README.md">Setup</a></strong> <span class="cost">☁</span></td><td>uv, gcloud profile, ADC, APIs, quotas</td><td><span class="badge done">done</span></td></tr>
     <tr><td>2</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/02-first-agent/README.md">First ADK agent</a></strong></td><td>Agent, Runner, Session, State, Events; the <code>adk web</code> dev UI; first traces in Langfuse</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>3</td><td><strong>Tools + Google's MCP</strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge progress">in progress</span></td></tr>
     <tr><td>4</td><td><strong>A skill (local)</strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users</td><td><span class="badge planned">planned</span></td></tr>
@@ -438,7 +438,7 @@ details.lesson li{margin:4px 0}
 <p>The "Welcome to Gemini Platform" page is the product console. The API switch and its traffic graphs live under <strong>APIs &amp; Services → Enabled APIs</strong>, as <code>aiplatform.googleapis.com</code>. Its Metrics tab showed our <code>GenerateContent</code> call.</p></div>
 </details>
 
-<details class="lesson" open>
+<details class="lesson">
 <summary>Lesson 2 · First ADK agent <span class="when">2026-11-24 → 2026-11-25</span></summary>
 <h4>What we did</h4>
 <ul>
@@ -580,6 +580,30 @@ details.lesson li{margin:4px 0}
 <p>Yes. The <code>langfuse</code> package (three <code>LANGFUSE_*</code> variables plus an import) captures the text itself. ADK's own OpenTelemetry spans need no new package but need the two content settings above. Both reach the same Langfuse.</p></div>
 <div class="qa"><p class="q">Would a web app do the same as the script?</p>
 <p>Either <strong>A</strong>: the web app imports the agent and runs its own Runner, exactly like the script (that's what <code>adk web</code> is); or <strong>B</strong>: the agent is deployed on Agent Runtime and the web app calls it over HTTP, and Google's server runs the Runner. We do A now and B in lessons 8 and 14.</p></div>
+</details>
+
+<details class="lesson" open>
+<summary>Lesson 3 · Real tools: Knowledge Catalog MCP and BigQuery <span class="when">2026-11-25 → in progress</span></summary>
+<h4>What we're doing</h4>
+<ul>
+  <li>Give <code>ga4_guide</code> two toolsets: Google's <strong>hosted Knowledge Catalog MCP server</strong> (read the table's real schema) and ADK's <strong>BigQueryToolset</strong> (run read-only SQL). Then ask the same December question as in lesson 2 and compare.</li>
+  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">lessons/03-tools-and-mcp</a>.</li>
+</ul>
+<h4>Facts checked before the lesson (verified 2026-11-25)</h4>
+<ul>
+  <li>The hosted server <code>https://dataplex.googleapis.com/mcp</code> answered through ADK's <code>McpToolset</code> with our ADC token, and offers <strong>15 tools</strong>: 8 that read (<code>search_entries</code>, <code>lookup_context</code>, <code>lookup_entry</code>, <code>lookup_entry_links</code>, <code>list_entries</code>, <code>get_glossary</code>, <code>get_operation</code>, <code>get_entry_group_iam_policy</code>) and 7 that change things (create/update/delete entries, entry groups, links, and <code>set_entry_group_iam_policy</code>). We give the agent 3 of them with <code>tool_filter</code>.</li>
+  <li><code>lookup_context</code> is described as "designed to be called after <code>SearchEntries</code>" and returns LLM-ready YAML: schema, data quality, usage statistics.</li>
+  <li>ADK's BigQuery toolset has 11 tools; <code>write_mode</code> defaults to <code>BLOCKED</code> (SELECT only). We add a 1 GB per-query cap and a 50-row result limit.</li>
+  <li>The table: 4,295,584 rows, 3.6 GB, <strong>partitioned by <code>event_date_dt</code></strong> (day), not sharded. A partition-filtered December purchase count reads about 34 MB (a free dry run), roughly $0.0002.</li>
+  <li>The <code>mcp</code> package 2.x renamed its low-level client function, so we go through ADK's <code>McpToolset</code>.</li>
+</ul>
+<h4>Key ideas</h4>
+<ul>
+  <li><strong>Function tool vs toolset vs MCP:</strong> a function is one tool; a toolset produces many; MCP is the standard protocol a server uses to publish tools to any agent.</li>
+  <li><strong><code>tool_filter</code> is the cheapest guardrail:</strong> the agent never learns the hidden tools exist. Lessons 9 and 11 add guardrails in code and on the network.</li>
+  <li><strong><code>header_provider</code></strong> adds a fresh token before every MCP call, so it never goes stale.</li>
+</ul>
+<p class="diagram-note">Results (what the agent actually did, the SQL it wrote, tokens and cost) will be added here when we've run it.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

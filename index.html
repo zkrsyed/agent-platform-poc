@@ -127,7 +127,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
   <h1>Agent Platform POC</h1>
   <p class="lede">Build one ADK agent and run it on Google Cloud. Then go and look at everything that appears around it: its <strong>identity</strong>, its <strong>registry entry</strong>, the <strong>MCP servers</strong> and <strong>skill</strong> it uses, the <strong>A2A</strong> link to a second agent, and the <strong>CI/CD</strong> pipeline that deploys it. It uses the GA4 sample table and the Knowledge Catalog / OKF context from the <a href="https://github.com/zkrsyed/kc-okf">kc-okf POC</a>.</p>
   <nav class="toc">
-    <a href="#map">Architecture</a><a href="#flow">Request flow</a><a href="#concepts">Key ideas</a><a href="#lessons">Lessons</a><a href="#journal">Learning journal</a><a href="#glossary">Glossary</a><a href="#labels">Labels</a>
+    <a href="#map">Architecture</a><a href="#flow">Request flow</a><a href="#concepts">Key ideas</a><a href="#lessons">Lessons</a><a href="#journal">Learning journal</a><a href="#troubleshooting">Troubleshooting</a><a href="#glossary">Glossary</a><a href="#labels">Labels</a>
   <button type="button" class="theme-toggle" id="themeToggle">Dark theme</button></nav>
 </header>
 
@@ -368,7 +368,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td><strong>What</strong></td><td>Reasoning loop + instruction + tools</td><td>Service offering tools, resources, prompts</td><td>Folder of know-how (<code>SKILL.md</code>)</td></tr>
     <tr><td><strong>Ours</strong></td><td><code>agents/ga4_guide</code></td><td><code>mcp_servers/okf</code></td><td><code>skills/ga4-context</code></td></tr>
     <tr><td><strong>Runs on</strong></td><td>Agent Runtime</td><td>Cloud Run</td><td>Nothing: an agent loads it</td></tr>
-    <tr><td><strong>Found in</strong></td><td>Agent Registry (auto)</td><td>Agent Registry (we register it)</td><td>Skill Registry (Preview)</td></tr>
+    <tr><td><strong>Found in</strong></td><td>Agent Registry (auto)</td><td>Agent Registry (we register it)</td><td>Agent Registry, Skills tab (we upload it)</td></tr>
     <tr><td><strong>.NET</strong></td><td>A web app</td><td>A Web API</td><td>A NuGet content package</td></tr>
   </tbody>
 </table>
@@ -376,18 +376,18 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
 <div class="cards">
   <div class="card" style="--c:var(--dev)"><h3>ADK</h3><p>The framework you write the agent in: agent, tools, runner, sessions, callbacks, eval.</p><span class="net">≈ ASP.NET for agents</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>Agent Runtime</h3><p>Managed hosting for agents, with managed sessions and Memory Bank. Formerly Agent Engine.</p><span class="net">≈ App Service</span></div>
-  <div class="card" style="--c:var(--gov)"><h3>Agent Identity</h3><p>Each agent gets its own <code>principal://</code> ID that you grant IAM roles to. No shared service-account keys.</p><span class="net">≈ Managed Identity</span></div>
-  <div class="card" style="--c:var(--cloud)"><h3>Agent Registry</h3><p>A catalog of agents and MCP servers, with their metadata, so other agents and people can find them.</p><span class="net">≈ service registry / NuGet feed</span></div>
+  <div class="card" style="--c:var(--gov)"><h3>Agent Identity</h3><p>Each deployed agent gets its own <code>principal://</code> ID that you grant IAM roles to. No shared service-account keys. Without an organization the ID uses <code>agents.global.proj-NUMBER</code>; its token works on Google's mTLS hosts (lessons 8–9, <strong>verified</strong>).</p><span class="net">≈ Managed Identity</span></div>
+  <div class="card" style="--c:var(--cloud)"><h3>Agent Registry</h3><p>A catalog of agents, MCP servers and skills, so other agents and people can find them. Agent Runtime agents and Google's MCP servers appear by themselves; ours are registered as services (lesson 10, <strong>verified</strong>).</p><span class="net">≈ service registry / NuGet feed</span></div>
   <div class="card" style="--c:var(--gov)"><h3>Agent Gateway + Model Armor</h3><p>All of the agent's outbound calls pass through it. Policies say which agent principal may call which MCP tool (a CEL rule on <code>mcp.toolName</code>), and Model Armor filters the content.</p><span class="net">≈ API Management + WAF, per identity</span></div>
-  <div class="card" style="--c:var(--cloud)"><h3>Skill Registry</h3><p>A private store for skills with versions (Preview). Agents load a skill from it instead of shipping it with their own code.</p><span class="net">≈ private NuGet feed</span></div>
+  <div class="card" style="--c:var(--cloud)"><h3>Skill Registry</h3><p>Skills stored in Agent Registry, with revisions and states (only Active ones download). Agents find one with <code>search_skills</code> and load it by name instead of shipping it with their own code (lesson 10, <strong>verified</strong>).</p><span class="net">≈ private NuGet feed</span></div>
   <div class="card" style="--c:var(--tool)"><h3>MCP</h3><p>The standard way to plug tools and data into any agent. We use Google's hosted server and build one of our own.</p><span class="net">≈ ODBC for agent tools</span></div>
   <div class="card" style="--c:var(--tool)"><h3>Skill</h3><p>A <code>SKILL.md</code> folder of know-how that the agent loads only when it needs it (progressive disclosure).</p><span class="net">≈ a runbook opened on demand</span></div>
-  <div class="card" style="--c:var(--dev)"><h3>Orchestrator + sub-agents</h3><p>One agent splits the job and delegates to specialists, either by LLM routing or by a fixed workflow (sequence, parallel, loop, graph).</p><span class="net">≈ controller + services, or Durable Functions</span></div>
+  <div class="card" style="--c:var(--dev)"><h3>Orchestrator + sub-agents</h3><p>One agent splits the job and delegates to specialists, either by LLM routing (transfer, agent as a tool) or by a fixed <code>Workflow</code> graph, which replaces the deprecated Sequential, Parallel and Loop agents (lesson 7, <strong>verified</strong>).</p><span class="net">≈ controller + services, or Durable Functions</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>A2A</h3><p>Agent-to-agent protocol for agents deployed <em>separately</em>, each with its own identity. An <em>agent card</em> says what an agent can do and where to reach it.</p><span class="net">≈ microservices + OpenAPI</span></div>
   <div class="card" style="--c:var(--tool)"><h3>A2UI</h3><p>The agent sends declarative UI (tables, pickers, cards) as JSON, and the app draws it from approved components. No agent code runs in the browser.</p><span class="net">≈ Adaptive Cards</span></div>
   <div class="card" style="--c:var(--gov)"><h3>ADK plugin</h3><p>Code registered once that runs before and after every model and tool call: logging, blocking, asking a human to confirm.</p><span class="net">≈ global middleware</span></div>
   <div class="card" style="--c:var(--dev)"><h3>Evaluate → optimize</h3><p>Offline tests, simulated users and online AI judges find failures; the prompt optimizer suggests fixes; then you re-score.</p><span class="net">≈ tests + APM + tuning advisor</span></div>
-  <div class="card" style="--c:var(--cloud)"><h3>Traces + Topology</h3><p>Every model and tool call is a span (OpenTelemetry). Compared with LangSmith and Langfuse, Google keeps the traces in your own project.</p><span class="net">≈ Application Insights + App Map</span></div>
+  <div class="card" style="--c:var(--cloud)"><h3>Traces + Topology</h3><p>Every model and tool call is a span (OpenTelemetry). Compared with LangSmith and Langfuse, Google keeps the traces in your own project. Topology needs a project inside an organization; ours has none (<strong>verified</strong>).</p><span class="net">≈ Application Insights + App Map</span></div>
   <div class="card" style="--c:var(--dev)"><h3>Three ways to build</h3><p>Low-code in Agent Studio, config with the Managed Agents API (Preview), or code with ADK. All run on the same platform.</p><span class="net">≈ Logic Apps vs YAML vs C#</span></div>
   <div class="card" style="--c:var(--dev)"><h3>CI/CD</h3><p>One pipeline per deployable (agent, MCP server, skill). The eval gate must pass before deploy.</p><span class="net">≈ Azure Pipelines with a test stage</span></div>
 </div>
@@ -1183,6 +1183,10 @@ Deployed:  agent token tied to its client certificate ──► only the mTLS do
         return {"status": "BLOCKED", ...}     # and the model gets our dict as the result
 
 app = App(name="ga4_guide", root_agent=root_agent, plugins=[GuardrailsPlugin()])</code></pre>
+<div class="two">
+<figure class="shot"><img src="docs/screenshots/09-approval.webp" alt="adk web: execute_sql paused by adk_request_confirmation, Approved, then 4,295,584 rows" loading="lazy"><figcaption>Your run in <code>adk web</code>: the plugin paused a full-table count (<code>adk_request_confirmation</code>), you clicked <strong>Approved</strong>, and it ran: 4,295,584 rows.</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/09-guardrail-cloud.webp" alt="runtime.py ask: three failed search_entries calls, then BLOCKED" loading="lazy"><figcaption>The deployed agent, while the catalog still failed: 3 failed <code>search_entries</code>, then the plugin <strong>BLOCKED</strong> the next call.</figcaption></figure>
+</div>
 <p>Skill = advice the model usually follows. IAM = what it can reach. Plugin = rules in code it can't skip. Lesson 11 adds the network layer.</p>
 
 <h4>Questions and answers</h4>
@@ -1219,6 +1223,10 @@ app = App(name="ga4_guide", root_agent=root_agent, plugins=[GuardrailsPlugin()])
 <tr><td>MCP Servers (15)</td><td><code>OKF pages (lesson 5)</code>, Runtime "MCP" (a service we created, with its tool spec)</td><td>14 servers named after their APIs, e.g. <code>dataplex.googleapis.com</code>, <code>bigquery.googleapis.com</code></td></tr>
 <tr><td>Skills</td><td><code>private-ga4-context</code>, <code>STATE_ACTIVE</code></td><td>100+ such as <code>cloud.google.com-bigquery-migration-validator</code></td></tr>
 </table></div>
+<div class="two">
+<figure class="shot"><img src="docs/screenshots/10-registry-agents.webp" alt="Agent Registry Agents tab: many Workspace Agent rows and ga4-guide (Agent Runtime, us-central1, Non A2A)" loading="lazy"><figcaption>Agents tab: Google's Workspace Agent once per location, and ours, <code>ga4-guide</code> (Agent Runtime, us-central1, <strong>Non A2A</strong>).</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/10-registry-mcp-servers.webp" alt="Agent Registry MCP Servers tab: OKF pages (lesson 5) with runtime MCP above Google MCP servers" loading="lazy"><figcaption>MCP Servers tab: our <code>OKF pages (lesson 5)</code> (ID <code>...services:okf-pages</code>, Runtime "MCP") above Google's servers ("Google MCP").</figcaption></figure>
+</div>
 <ul>
   <li><strong>Our agent's entry</strong> lists its Agent Runtime URLs (<code>:query</code>, <code>:streamQuery</code>), <code>Framework: google-adk</code> and its <strong>agent identity</strong> (<code>principal://...reasoningEngines/...</code>). An <strong>agent card</strong> (protocol, A2A URL, skills) is missing; lesson 12 adds one.</li>
   <li><strong>Connecting through the registry</strong> gives the whole server, write tools included (<code>delete_entry</code>, <code>upsert_entry</code>...); set <code>toolset.tool_filter</code> afterwards to keep only the read tools.</li>
@@ -1239,6 +1247,10 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
                                ["search_entries", "lookup_context", "lookup_entry"])</code></pre>
 <p><strong>Your run:</strong> <code>search_skills</code> → "1 skill found: private-ga4-context" → <code>load_skill</code> → <code>dataplex_googleapis_com_search_entries</code> / <code>..._lookup_context</code> → <code>load_skill_resource</code> from <code>private-ga4-context</code> → the 72-hour rule, citing the Skill Registry. About 26 s, $0.11. No skill folder and no catalog URL in the agent's code.</p>
 
+<div class="two">
+<figure class="shot"><img src="docs/screenshots/10-ga4-registry-run.webp" alt="adk web: ga4_registry search_skills found private-ga4-context, load_skill, dataplex tools, answer citing the Skill Registry" loading="lazy"><figcaption><code>ga4_registry</code> in <code>adk web</code>: <code>search_skills</code> → 1 skill found → <code>load_skill("private-ga4-context")</code> → catalog tools from the registry → answer citing the Skill Registry.</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/10-langfuse-trace.webp" alt="Langfuse trace tree for the ga4_registry run with load_skill selected" loading="lazy"><figcaption>The same run in Langfuse, read top to bottom as a tree: each line is a <strong>span</strong>; <code>load_skill</code>'s input is <code>private-ga4-context</code>.</figcaption></figure>
+</div>
 <h4>Questions and answers</h4>
 <div class="qa"><p class="q">Who created all those agents?</p>
 <p>Google: the 46 Workspace Agents are one A2A agent repeated per location, listed automatically, like the 14 Google MCP servers and 100+ Google skills. Only <code>ga4-guide</code> is ours.</p></div>
@@ -1246,6 +1258,8 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
 <p><code>registry.py</code>: agents and MCP servers (<code>agents</code>, <code>mcp</code>, <code>show NAME</code>, <code>tools NAME</code>). <code>skill_registry.py</code>: skills (<code>upload</code>, <code>list</code>, <code>show</code>, <code>activate</code>, <code>search</code>).</p></div>
 <div class="qa"><p class="q">Why did <code>search</code> work with "random text"?</p>
 <p>It takes words, not a name: the registry matches them against skill names and descriptions, like a search engine. An agent does the same through <code>search_skills</code>, then loads the skill by the name it gets back.</p></div>
+<div class="qa"><p class="q">How do I read a Langfuse trace?</p>
+<p>Top to bottom, as a tree. The <strong>trace</strong> is the whole request (<code>POST /run_sse</code>); each line is a <strong>span</strong>, one step with its own time and, for model calls, tokens and cost. Indentation means "happened inside": the agent contains the model and tool calls, and a catalog tool contains its <code>MCP send tools/call</code>. Click a span for its input and output. The flat Observations list is the same spans without the tree: good for sorting and filtering, confusing for reading the story.</p></div>
 <div class="qa"><p class="q">Does <code>ga4_registry</code> use our <code>okf-pages</code> MCP server?</p>
 <p>No: it uses Google's Knowledge Catalog server. Ours is registered (findable) but runs only on the laptop (<code>127.0.0.1</code>), so nobody else can reach it until it's on Cloud Run.</p></div>
 <p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/10-registry/README.md">lessons/10-registry</a> · evidence: <code>results/10-registry.md</code>.</p>
@@ -1258,6 +1272,51 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
 <li>When docs and an API disagree on fields, read the API's discovery document.</li>
 </ul></div>
 </details>
+
+<h2 id="troubleshooting">Troubleshooting and lessons learned</h2>
+<p class="lede">Every problem we hit, with its cause and fix, for later reference. Also in <a href="docs/troubleshooting.md">docs/troubleshooting.md</a>.</p>
+<div class="table-wrap"><table>
+<tr><th>Lesson</th><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>4</td><td><code>429 RESOURCE_EXHAUSTED</code> from Gemini</td><td>Vertex rate limit or capacity on big (~35K-token) bursts; not credentials (tiny calls worked)</td><td>Wait and retry, run fewer things in parallel (<code>adk eval --parallelism 1</code>)</td></tr>
+<tr><td>4, 9, 10</td><td>The README preview shows old text</td><td>The editor&#x27;s Markdown preview didn&#x27;t reload after the file changed</td><td>Close the preview tab and open it again (or open the file itself)</td></tr>
+<tr><td>5</td><td><code>jq: parse error</code></td><td>The script printed Python dicts (single quotes, <code>False</code>), not JSON</td><td>Print the text parts, or use <code>json.dumps</code></td></tr>
+<tr><td>5</td><td><code>ConnectionError: All connection attempts failed</code></td><td>The HTTP MCP server wasn&#x27;t running</td><td>Start the server first (terminal A), keep it running</td></tr>
+<tr><td>5</td><td>The question went to the wrong agent in <code>adk web</code></td><td><code>adk web agents</code> lists every agent folder; the dropdown picks one (alphabetical first)</td><td>Choose the agent in the dropdown, then New Session</td></tr>
+<tr><td>6</td><td>Rubric metric says <code>NOT_EVALUATED</code>, log: &quot;Rubrics are required.&quot;</td><td>Each rubric needs a type the metric filters on</td><td>Add <code>&quot;type&quot;: &quot;FINAL_RESPONSE_QUALITY&quot;</code> to each rubric</td></tr>
+<tr><td>6</td><td><code>adk eval</code> exits with an error code</td><td>One or more cases failed, like a test runner</td><td>Read the summary; <code>--print_detailed_results</code> for one case (<code>file.json:case_id</code>)</td></tr>
+<tr><td>6, 7</td><td>A simulated or single run fails or passes &quot;by luck&quot;</td><td>Free text and model choices vary run to run; judges and simulators can be wrong too</td><td>Read the conversation; use <code>--num_runs 3</code> before deciding</td></tr>
+<tr><td>7</td><td>The reviewer approved a wrong query</td><td>A reviewer is only as good as its checklist</td><td>Give it explicit checks (e.g. &quot;GA4&#x27;s built-in fields do NOT replace our definitions&quot;)</td></tr>
+<tr><td>7</td><td>A pipeline step answered without the reason</td><td>Each Workflow step knows only what you pass it (state, instruction)</td><td>Pass the needed context, or give that step the skill</td></tr>
+<tr><td>8</td><td>Deploy: &quot;container failed to start&quot;</td><td>The image installed only <code>google-adk[a2a]</code> (no <code>mcp</code>)</td><td>Read the container log (<code>gcloud logging read &#x27;resource.labels.reasoning_engine_id=&quot;ID&quot;&#x27;</code>); add <code>requirements.txt</code></td></tr>
+<tr><td>8</td><td>Secrets would be uploaded</td><td><code>adk deploy</code> turns every line of the agent folder&#x27;s <code>.env</code> into a cloud setting</td><td>Deploy a clean build folder (<code>scripts/stage_deploy.py</code>)</td></tr>
+<tr><td>8</td><td>Skill missing when deployed</td><td>Only the agent folder is uploaded</td><td>Copy the skill into the build folder</td></tr>
+<tr><td>8</td><td><code>404 NOT_FOUND</code> for <code>gemini-3.5-flash</code></td><td>The model is served only on <code>global</code>; <code>--region</code> sets <code>GOOGLE_CLOUD_LOCATION</code></td><td><code>Gemini(model=..., client_kwargs={&quot;location&quot;: &quot;global&quot;})</code></td></tr>
+<tr><td>8</td><td>Console Traces / Dashboard empty; Sessions asks for App Hub</td><td>Deployed without <code>--otel_to_cloud</code>; <code>apphub.googleapis.com</code> off</td><td>Turn each on in its lesson (16, 13), after checking cost</td></tr>
+<tr><td>8, 16</td><td>Topology: &quot;A project owned by an organization is required&quot;</td><td>Our project has no organization</td><td>Needs Cloud Identity / Workspace (a later decision)</td></tr>
+<tr><td>8</td><td>The deployed agent retried 8 failing calls</td><td>Nothing told it to stop</td><td>Guardrail plugin: block tools after 3 errors in a turn (lesson 9)</td></tr>
+<tr><td>9, 10</td><td><code>400 INVALID_ARGUMENT</code>, empty log results, or <code>IndexError</code> in a script</td><td>A placeholder (<code>ID</code>, <code>NAME</code>) was sent literally</td><td>Set <code>ID=...</code> once and use <code>$ID</code>; scripts accept display names</td></tr>
+<tr><td>9</td><td>&quot;The member  is of an unknown type&quot; (nothing between the spaces)</td><td><code>$P</code> was empty: a new terminal tab</td><td>Run the <code>R=</code> / <code>P=</code> lines again in this tab</td></tr>
+<tr><td>9</td><td>A <code>bq</code> job ran in another project</td><td><code>bq</code> uses its own default project</td><td>Always pass <code>--project_id</code></td></tr>
+<tr><td>9</td><td><code>grep principalSet</code> didn&#x27;t show the new role</td><td>The role is on the single <code>principal://</code>, not the <code>principalSet</code> group</td><td><code>grep reasoningEngines</code>, or the console IAM page</td></tr>
+<tr><td>9</td><td>Catalog MCP: generic &quot;Server returned an error response&quot;</td><td>ADK hides the server&#x27;s reply</td><td>Read the container log for the HTTP status</td></tr>
+<tr><td>9</td><td>Catalog MCP: 401 on <code>dataplex.googleapis.com</code></td><td>The deployed agent&#x27;s token is accepted only on mTLS hosts (guess, fits the logs)</td><td><code>CATALOG_MCP_URL=https://dataplex.mtls.googleapis.com/mcp</code> in the build&#x27;s <code>.env</code></td></tr>
+<tr><td>9</td><td>Catalog MCP: 403 on <code>tools/call</code> only</td><td>Calling tools on Google MCP servers needs <code>mcp.tools.call</code></td><td>Grant <code>roles/mcp.toolUser</code></td></tr>
+<tr><td>9</td><td>Still 403 right after a grant</td><td>IAM takes a few minutes to propagate</td><td>Wait; the admin audit log shows when each grant happened</td></tr>
+<tr><td>10</td><td>Skill upload <code>400 ... type is required</code></td><td>Required fields not in the docs page</td><td>Read the API&#x27;s discovery document (<code>$discovery/rest?version=v1</code>): <code>type: SIMPLE</code>, <code>targetState</code></td></tr>
+<tr><td>10</td><td><code>409 The resource is being created</code></td><td>The skill was still being created</td><td>Wait; <code>targetState: ACTIVE</code> at creation makes <code>activate</code> unnecessary</td></tr>
+<tr><td>10</td><td>The registry&#x27;s MCP toolset offers write tools</td><td><code>get_mcp_toolset</code> returns the whole server</td><td>Set <code>toolset.tool_filter = [...]</code> afterwards</td></tr>
+</table></div>
+<h3>Lessons learned</h3>
+<ul>
+  <li>Measure, don&#x27;t eyeball: the same eval set compared one agent, a team and a pipeline (lessons 6–7).</li>
+  <li>One run proves little: run 3 times before ranking (lessons 4, 6, 7).</li>
+  <li>Skill = advice the model usually follows; IAM = what it can reach; plugin = rules it can&#x27;t skip; Gateway (lesson 11) = rules on the network.</li>
+  <li>Least privilege is a loop: grant one role, read the error, grant the next (lesson 9).</li>
+  <li>401 = credentials not accepted; 403 = known but not allowed.</li>
+  <li>When something fails in the cloud, read the logs: the container log and the audit log told us every cause.</li>
+  <li>Carry vs look up: a copied skill drifts; a live page or registry entry stays current but must be reachable (lessons 5, 10).</li>
+  <li>Before putting anything in a public repo, check it for secrets, emails and project numbers (screenshots too).</li>
+</ul>
 
 <h2 id="glossary">Glossary</h2>
 <p class="lede">Every term used here, in one line, with a .NET or SQL Server comparison. The full version is <a href="docs/glossary.md">docs/glossary.md</a>.</p>
@@ -1299,16 +1358,21 @@ const G = [
  ["Orchestrator","Top agent that splits a task and delegates to sub-agents","A controller calling services"],
  ["Transfer (LLM routing)","With sub_agents, the model hands the conversation to another agent","Runtime routing"],
  ["Graph Workflow (ADK 2.x)","Nodes and edges, JoinNode, retries for fixed multi-step flows","Durable Functions"],
+ ["output_key / {placeholder}", "An agent saves its reply in session state under a name; the next agent's instruction reads it with {name} ({name?} = empty if missing)", "Passing a DTO between steps"],
  ["Runner","Runs the agent: messages in, events recorded, tools executed","The ASP.NET host / middleware"],
  ["Session","One conversation's events plus its state","HttpContext.Session"],
  ["State","Shared key-value data; the user:, app: and temp: prefixes set the scope","Session or app cache"],
  ["Event","One recorded step (message, tool call, tool result)","An audit-log row"],
  ["ADK plugin","Registered once; its callbacks run for every model and tool call in the app","Global middleware"],
+ ["App (ADK)", "Wraps the root agent and adds app-wide settings such as plugins; adk web and adk deploy look for `app` first, then `root_agent`", "Program.cs / WebApplication"],
  ["Tool confirmation","ADK pauses before a tool runs and waits for a human OK","Approval step"],
  ["Callback","A hook before or after a model or tool call, used to log, block or change it","Middleware / action filters"],
  ["Artifact (ADK)","A file saved or loaded during a session","A blob attached to the session"],
  ["adk web / run / api_server","Local chat UI, terminal chat, local REST server","dotnet run + Swagger"],
  ["adk eval / evalset","Saved conversations, run as tests and scored","Unit and integration tests"],
+ ["Eval config (test_config.json)", "Which metrics grade the eval set, their thresholds, and the judge model; the eval set is the exam, the config the marking scheme", ".runsettings"],
+ ["Rubric", "A yes/no line a judge model checks against an answer, e.g. \"the answer gives about $57,001\"; needs type FINAL_RESPONSE_QUALITY", "An acceptance criterion"],
+ ["Persona (simulated user)", "The kind of user a simulator plays, e.g. NOVICE or EXPERT; graded too, since a bad simulator spoils the test", "A test persona"],
  ["Tools, MCP, skills"],
  ["Tool / FunctionTool","A Python function the model can call; the docstring becomes its description","A public method with XML docs"],
  ["Toolset","A group of tools loaded together (McpToolset, BigQueryToolset)","A NuGet package"],
@@ -1322,20 +1386,30 @@ const G = [
  ["Agent Skill / SKILL.md","Know-how folder (instructions, references, scripts) loaded on demand with SkillToolset","A runbook opened when needed"],
  ["Progressive disclosure","The agent sees only skill summaries until it needs the full text","Lazy loading"],
  ["Skill Registry","Private, versioned store for skills shared across agents (Preview)","Private NuGet feed"],
+ ["Skill revision / state", "Each upload is a revision; a skill is Draft, Active, Disabled...; only Active skills can be downloaded", "Package versions + listing status"],
  ["agent-platform-skill-registry","Google's skill for uploading and managing skills in Skill Registry","A CLI for the feed"],
  ["Claude Code plugin","Bundle of skills, MCP configs, commands and hooks, shared via Git marketplaces","VS Code extension pack"],
  ["Gemini CLI extension","Google's equivalent bundle for Gemini CLI","Same idea, other tool"],
  ["Agents talking to agents"],
  ["A2A","Agent2Agent protocol: one agent calls another over HTTP","gRPC between services"],
  ["Agent card","JSON at /.well-known/agent-card.json: name, skills, endpoint, auth","OpenAPI / WSDL"],
+ ["CUSTOM registry entry", "How Agent Registry lists an auto-registered ADK agent: its Agent Runtime URLs and identity, but no agent card (\"Non A2A\")", "A service with no API docs"],
  ["RemoteA2aAgent","ADK client that treats a remote A2A agent as a sub-agent","A generated service client"],
  ["Google Cloud platform"],
  ["Gemini Enterprise Agent Platform","Vertex AI's new name (April 2026): build, scale, govern, optimize","Azure AI Foundry"],
  ["Agent Runtime","Managed hosting for agents (formerly Agent Engine)","App Service / Functions"],
+ [".agent_engine_config.json", "Deploy settings next to an agent: identity_type AGENT_IDENTITY, min/max instances", "Hosting settings in appsettings.json"],
  ["Memory Bank","Long-term memory across sessions, extracted per user","An auto-filled user profile table"],
  ["Agent Identity","Per-agent principal:// identity (SPIFFE) that gets IAM roles","Managed Identity"],
  ["Principal","Anything IAM roles can be granted to","A SQL login"],
+ ["principalSet", "A group of principals, e.g. every agent in the project; Google grants it agentDefaultAccess", "An AD group"],
+ ["Role / binding / scope", "A role is a set of permissions; a binding gives a principal a role on a resource; the scope is where it applies (project vs one dataset)", "Role + [Authorize] + where it's applied"],
+ ["Least privilege", "The smallest roles on the smallest scope that work; add one, read the error, add the next", "Minimal SQL grants"],
+ ["401 vs 403", "401: credentials not accepted (authentication). 403: known but not allowed (authorization)", "Same as HTTP in ASP.NET"],
+ ["mTLS (mutual TLS)", "Both sides show a certificate; a deployed agent's token is accepted only on Google's *.mtls.googleapis.com hosts", "Client-certificate auth"],
  ["Agent Registry","Catalog of agents and MCP servers with their metadata","Service registry / NuGet feed"],
+ ["Registry service", "What you create to register your own agent, MCP server or endpoint; the registry shows it as a read-only Agent/McpServer/Endpoint", "Publishing a package"],
+ ["Tool spec", "An MCP server's tool list (name, description, input schema) stored with its registry entry, up to 150 KB", "API docs on a package page"],
  ["Agent metadata","Name, version, framework, capabilities, endpoint, agent card","A .nuspec"],
  ["Agent Studio","Low-code visual canvas for designing agents","Logic Apps designer"],
  ["Model Garden","Gemini, partner (Claude, Grok, Mistral) and open models","Engine marketplace"],
@@ -1370,6 +1444,7 @@ const G = [
  ["Prompt optimizer","Proposes better instructions from failures","Index tuning advisor"],
  ["Topology","Graph of the agent and everything it calls","Application Map"],
  ["Span / trace","A trace is one request; a span is one step in it","A call-tree row"],
+ ["Implicit caching", "Gemini reuses a repeated prompt prefix by itself and bills it lower (input_cached_tokens); seen at ~7,200 tokens per call in lesson 5", "A query plan cache"],
  ["LangSmith","LangChain's hosted tracing, eval and prompt tool","Third-party APM"],
  ["Langfuse","Open-source, self-hostable LangSmith alternative","Self-hosted Seq/Grafana"],
  ["Delivery and operations"],
@@ -1382,6 +1457,7 @@ const G = [
  ["Cloud Trace / Logging","Spans for every model and tool call, plus logs (OpenTelemetry)","Application Insights"],
  ["Cloud Run invoker / ID token","Role to call a private Cloud Run service; callers send a Google ID token","App role + bearer token"],
  ["Update vs re-create","Redeploy in place vs new resource; may change URL and identity","In-place deploy vs new slot"],
+ ["GA vs Preview", "GA (General Availability) = stable and supported; Preview = early, may change, often no SLA", "Release vs beta"],
  ["Staging bucket","Where a deploy uploads the packaged agent","Build drop folder"]
 ];
 const tb = document.querySelector('#gl tbody');

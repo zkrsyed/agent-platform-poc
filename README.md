@@ -27,15 +27,20 @@ Every claim is labelled:
 ## Layout (it fills in as the lessons go)
 
 ```
-index.html            map: diagram, glossary, lessons, status
-docs/                 lesson plan and glossary (markdown)
+index.html            map: diagram, lessons, learning journal, troubleshooting, glossary
+docs/                 lesson plan, glossary, troubleshooting (markdown), screenshots/
 lessons/NN-*/         one README per lesson: explanation, code to paste, commands
-agents/ga4_guide/     the ADK agent (agent.py, tools)                → Agent Runtime
-mcp_servers/okf/      our own MCP server that serves OKF pages         → Cloud Run + Agent Registry
-skills/ga4-context/   the skill (SKILL.md + references)                → Skill Registry
-eval/                 evalset for `adk eval`
-deploy/               deploy script and cloudbuild.yaml (CI/CD)
-results/              what happened in each lesson, with evidence
+agents/ga4_guide/     the main ADK agent (skill, catalog MCP, BigQuery, guardrails plugin) → Agent Runtime (lesson 8)
+agents/okf_guide/     a small agent that uses only our MCP server (lesson 5)
+agents/ga4_team/      multi-agent: front desk, specialists, reviewer as a tool (lesson 7)
+agents/ga4_flow/      multi-agent: Workflow graph with a review loop (lesson 7)
+agents/ga4_registry/  finds its skill and catalog tools in Agent Registry (lesson 10)
+mcp_servers/okf/      our own MCP server: Studio pages read live from Knowledge Catalog → Agent Registry (lesson 10)
+skills/ga4-context/   the skill (SKILL.md + references)                → Agent Registry skills (lesson 10)
+eval/                 eval sets and configs for `adk eval` (lesson 6)
+scripts/              helpers: adk.sh, stage_deploy.py, runtime.py, registry.py, skill_registry.py, ...
+build/                generated deploy copy (git-ignored)
+results/              what happened in each lesson, with evidence; cloud-resources.md lists what to delete
 ```
 
 ## Cost and clean-up

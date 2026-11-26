@@ -148,3 +148,27 @@ Every term this POC touches, explained in one line with a .NET or SQL Server com
 | **A2UI renderer** | Client library that draws A2UI JSON (web, Flutter, Android) | A view engine | 15 |
 | **AG-UI** | CopilotKit's open protocol for streaming agent events (text, tool calls, state) to a front end | SignalR events for agents | 15 (compare) |
 | **MCP Apps / `render_ui_widget`** | Interactive UI served by an MCP server; ADK's `tool_context.render_ui_widget(UiWidget)` attaches one to an event (**verified** in ADK 2.15 source) | An embedded iframe widget | 15 (compare) |
+
+## Added after lessons 5 to 10 (verified in the lessons)
+
+| Term | What it is | Compare to | Lesson |
+|---|---|---|---|
+| **`output_key` / `{placeholder}`** | An agent saves its reply in session state under a name; the next agent's instruction reads it with `{name}` (`{name?}` = empty if missing) | Passing a DTO between steps | 7 |
+| **`Workflow` (ADK 2.x)** | A graph of nodes and edges, with routes like `"approved"` / `"fix"`; replaces the deprecated `SequentialAgent`, `ParallelAgent` and `LoopAgent` | A state machine | 7 |
+| **`AgentTool`** | Wraps an agent so another agent calls it like a function and stays in charge | Calling a service method | 7 |
+| **`App` (ADK)** | Wraps the root agent and adds app-wide settings such as plugins; loaders look for `app` before `root_agent` | `Program.cs` | 9 |
+| **Eval config** | Metrics, thresholds and judge model for an eval set (`test_config.json`): the eval set is the exam, the config the marking scheme | `.runsettings` | 6 |
+| **Rubric** | A yes/no line a judge model checks; needs `"type": "FINAL_RESPONSE_QUALITY"` | An acceptance criterion | 6 |
+| **Persona (simulated user)** | The kind of user a simulator plays (`NOVICE`, `EXPERT`); the simulator is graded too | A test persona | 6 |
+| **`.agent_engine_config.json`** | Deploy settings next to an agent: `identity_type`, `min_instances`, `max_instances` | Hosting settings | 8 |
+| **`principalSet`** | A group of principals, e.g. every agent in the project | An AD group | 9 |
+| **Role / binding / scope** | A role is a set of permissions; a binding gives a principal a role on a resource; the scope is where it applies | Role + `[Authorize]` + where it's applied | 9 |
+| **Least privilege** | The smallest roles on the smallest scope that work; grant one, read the error, grant the next | Minimal SQL grants | 9 |
+| **401 vs 403** | 401: credentials not accepted. 403: known but not allowed | HTTP in ASP.NET | 9 |
+| **mTLS** | Both sides show a certificate; a deployed agent's token is accepted only on `*.mtls.googleapis.com` hosts | Client-certificate auth | 9 |
+| **GA vs Preview** | GA = stable and supported; Preview = early, may change | Release vs beta | 9 |
+| **Registry service** | What you create to register your own agent, MCP server or endpoint in Agent Registry | Publishing a package | 10 |
+| **Tool spec** | An MCP server's tool list stored with its registry entry (max 150 KB) | API docs on a package page | 10 |
+| **Skill revision / state** | Each upload is a revision; a skill is Draft, Active, Disabled...; only Active skills download | Package versions | 10 |
+| **`CUSTOM` registry entry** | How an auto-registered ADK agent appears: Agent Runtime URLs and identity, no agent card ("Non A2A") | A service with no API docs | 10 |
+| **Implicit caching** | Gemini reuses a repeated prompt prefix by itself and bills it lower (`input_cached_tokens`) | A query plan cache | 5 |

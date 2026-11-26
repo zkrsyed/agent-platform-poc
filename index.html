@@ -419,7 +419,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge done">done</span></td></tr>
     <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge done">done</span></td></tr>
     <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>8</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>8</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">Deploy to Agent Runtime</a></strong> <span class="cost">☁</span></td><td><code>adk deploy agent_engine</code> of a clean build copy (skill inside, no Langfuse key), Agent Identity, scale to zero; the deliberate first 403</td><td><span class="badge progress">in progress</span></td></tr>
     <tr><td>9</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs tool calls and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>10</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry metadata; skill loaded from Skill Registry; MCP server used from 3 clients; optional Claude Code plugin</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>11</td><td><strong>Agent Gateway + governance</strong> <span class="cost">☁</span></td><td>Egress policy per principal; block <code>modify_entry</code> on the network; ENFORCED; Model Armor; semantic governance</td><td><span class="badge planned">planned</span></td></tr>
@@ -1055,6 +1055,21 @@ root_agent = Workflow(name="ga4_flow", edges=[
 <li>A reviewer step catches mistakes, but only those on its checklist.</li>
 <li>Measure a team with the same eval set; one run is not enough to rank.</li>
 </ul></div>
+</details>
+<details class="lesson" id="l8">
+<summary><span class="num">Lesson 8</span><span class="ttl">Deploy to Agent Runtime</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p><strong>Agent Runtime</strong> is Google's managed hosting for agents (formerly Vertex AI Agent Engine). <code>adk deploy agent_engine</code> packages one agent folder, builds a container and starts it. With <strong>Agent Identity</strong> the deployed agent acts as <em>itself</em> (its own principal), not as you, so it can do only what it's been allowed. The first call to BigQuery is expected to fail with 403 until lesson 9 grants roles.</p>
+</div>
+<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+<ul>
+  <li><strong><code>adk deploy</code> uploads every value in the agent folder's <code>.env</code></strong> as an environment variable. Ours holds the Langfuse key, so we deploy a clean copy built by <code>scripts/stage_deploy.py</code>.</li>
+  <li><strong>Only the agent folder is uploaded</strong>, so the skill is copied inside the build folder.</li>
+  <li><strong><code>gemini-3.5-flash</code> returns 404 in <code>us-central1</code></strong> and works on <code>global</code>; we pin the model's location in code with <code>Gemini(..., client_kwargs={"location": "global"})</code>. The built copy answered with the region set to <code>us-central1</code>.</li>
+  <li><code>vertexai.Client</code> is deprecated in favor of <code>agentplatform.Client</code>, which calls deployed agents <code>runtimes</code>. No agents are deployed yet in the project.</li>
+  <li>Docs: identity via <code>"identity_type": "AGENT_IDENTITY"</code> in <code>.agent_engine_config.json</code>; <code>min_instances</code> defaults to 1 (we set 0); idle time isn't billed while that feature is in Preview.</li>
+</ul>
+<p class="diagram-note">Results will be added after we deploy together.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

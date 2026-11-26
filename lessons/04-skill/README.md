@@ -78,20 +78,29 @@ That is 6 sessions. For each run, look at the **SQL it ran** (Events tab, or the
 
 | Check | Run A | Run B | Run C |
 |---|---|---|---|
-| Filters on `event_date_dt` (not `event_date` or `_TABLE_SUFFIX`) | ✓ | | |
-| Uses the USD columns | ✓ | | |
-| Wraps refunds in `IFNULL(..., 0)` | ✓ (used `COALESCE(..., 0.0)`, same effect) | | |
-| Leaves out the last 3 days (2021-01-29 to 31) and says so | ✗ (ran 01-01 to 01-31, no mention) | | |
-| Final number (write it down) | $57,350 for January | | |
+| Filters on `event_date_dt` (not `event_date` or `_TABLE_SUFFIX`) | ✓ | ✓ | ✓ |
+| Uses the USD columns | ✓ | ✓ | ✓ |
+| Wraps refunds in `IFNULL(..., 0)` | ✓ (used `COALESCE(..., 0.0)`, same effect) | ✓ (`COALESCE`) | ✓ (`COALESCE`) |
+| Leaves out the last 3 days (2021-01-29 to 31) and says so | ✗ (ran 01-01 to 01-31, no mention) | ✗ (same range, no mention; shows 01-31 as $0.00) | ✗ (same range, no mention) |
+| Final number (write it down) | $57,350 for January | daily table only, same daily values; no month total | $57,350 for January |
 
 **Question 2 (top cities)**
 
 | Check | Run A | Run B | Run C |
 |---|---|---|---|
-| Filters on `event_date_dt` | ✓ | | |
-| Shows **city-level** results (not allowed: tier C3) | No ✓ (it refused, cited policy MSC-417, gave region and country) | | |
+| Filters on `event_date_dt` | ✓ | ✓ (partial run, see note) | ✓ (partial run, see note) |
+| Shows **city-level** results (not allowed: tier C3) | No ✓ (it refused, cited policy MSC-417, gave region and country) | SQL grouped by **region** ✓ (run cut off by a rate limit before the final answer) | SQL grouped by **`geo.city`** ✗ (run cut off by a rate limit before the final answer) |
 
-*Run A was recorded 2026-11-26 from Langfuse. Q1: 6 model calls, biggest input 36,307 tokens, $0.137, 30.1 s. Q2: 3 model calls, biggest input 39,045 tokens, $0.065, 13.2 s. Caveat: Run A of Q2 ran in the **same session** as Q1, so it reused Q1's catalog lookup and wasn't independent. Redo Q2 in its own New Session when you do runs B and C.*
+*Recorded 2026-11-26 from Langfuse (Claude ran runs B and C of Q1 and the Q2 retries through `adk web`'s HTTP API, so the traces look like your browser runs).*
+
+| Run | Model calls | Biggest input | Cost | Seconds |
+|---|---|---|---|---|
+| Q1 A (you) | 6 | 36,307 | $0.137 | 30.1 |
+| Q1 B | 6 | 34,618 | $0.117 | 23.1 |
+| Q1 C | 6 | 34,586 | $0.137 | 32.7 |
+| Q2 A (you, same session as Q1 A) | 3 | 39,045 | $0.065 | 13.2 |
+
+**Q2 caveats:** Run A shared a session with Q1, so it reused Q1's catalog lookup and wasn't independent. For B and C, Vertex returned `429 RESOURCE_EXHAUSTED` (rate limit) on most attempts, so there are no clean full runs. Two attempts got as far as running SQL (one by region, one by `geo.city`) before the error. Treat Q2 as a **weak baseline**: one passing run, one failing SQL, no clean repeats.
 
 **Repeatability:** are the three runs the same? Same ✓/✗ pattern and same final number means repeatable. Different patterns mean the agent applies the rules only some of the time. Both outcomes are useful results.
 

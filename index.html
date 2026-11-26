@@ -7,16 +7,18 @@
 <meta name="description" content="Learning map for building an ADK agent and running it on Google Cloud Agent Runtime with Agent Identity, Agent Registry, MCP, skills, A2A and CI/CD.">
 <style>
 :root{
-  --bg:#f7f7f4; --surface:#ffffff; --ink:#1d1f21; --muted:#5d6166; --line:#d9dad5;
-  --accent:#1a6fd1; --accent-soft:#e3eefb;
-  --dev:#6b4fbb; --dev-soft:#efeafb;
-  --cloud:#0f7b6c; --cloud-soft:#e2f3f0;
-  --tool:#b35a00; --tool-soft:#fbeedf;
-  --gov:#a32b52; --gov-soft:#fbe6ed;
-  --ok:#2f7d32; --plan:#7a7d82;
+  color-scheme:light;
+  --bg:#e3e5e8; --surface:#eef0f2; --ink:#20242a; --muted:#4f565e; --line:#bfc4ca;
+  --accent:#1c5fb0; --accent-soft:#d3dfee;
+  --dev:#5d44a8; --dev-soft:#e0dbef;
+  --cloud:#0c6b5e; --cloud-soft:#cfe3df;
+  --tool:#944900; --tool-soft:#ecdcc8;
+  --gov:#962748; --gov-soft:#ecd3dc;
+  --ok:#2a6f2d; --plan:#5f646a;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
+    color-scheme:dark;
     --bg:#141517; --surface:#1d1f22; --ink:#e8e8e6; --muted:#a2a6ab; --line:#33363a;
     --accent:#6aa8f0; --accent-soft:#1d2c3f;
     --dev:#a993ea; --dev-soft:#27223a;
@@ -27,6 +29,7 @@
   }
 }
 :root[data-theme="dark"]{
+  color-scheme:dark;
   --bg:#141517; --surface:#1d1f22; --ink:#e8e8e6; --muted:#a2a6ab; --line:#33363a;
   --accent:#6aa8f0; --accent-soft:#1d2c3f;
   --dev:#a993ea; --dev-soft:#27223a;
@@ -81,7 +84,36 @@ details.lesson li{margin:4px 0}
 .qa p{margin:4px 0}
 .when{color:var(--muted);font-size:.85rem;font-weight:400}
 @media (max-width:640px){ th:nth-child(3),td:nth-child(3){display:none} }
+/* theme toggle and journal controls */
+.theme-toggle,.jctl button{font:inherit;font-size:.88rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:4px 12px;border-radius:999px;cursor:pointer}
+.theme-toggle{margin-left:auto}
+.theme-toggle:hover,.jctl button:hover,nav.toc a:hover{border-color:var(--accent)}
+.theme-toggle:focus-visible,.jctl button:focus-visible,nav.toc a:focus-visible,details.lesson>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.jctl{display:flex;gap:8px;margin:12px 0 8px}
+#jnav{margin:0 0 12px}
+/* lesson cards: easier to scan and read */
+details.lesson{line-height:1.65}
+details.lesson>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;list-style:none}
+details.lesson>summary::-webkit-details-marker{display:none}
+details.lesson>summary::before{content:"\25B8";color:var(--muted);transition:transform .15s}
+details.lesson[open]>summary::before{transform:rotate(90deg)}
+.num{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-weight:700}
+.ttl{flex:1 1 240px}
+details.lesson p,details.lesson ul,details.lesson ol{max-width:78ch}
+details.lesson li{margin:6px 0}
+details.lesson .table-wrap{margin:8px 0 14px}
+details.lesson h4{margin-top:24px}
+.basics,.remember{border:1px solid var(--line);border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:10px 16px;margin:8px 0 16px;max-width:80ch}
+.remember{border-left-color:var(--ok);background:var(--surface)}
+details.lesson .basics h4,details.lesson .remember h4{margin:0 0 6px;color:var(--ink);text-transform:none;letter-spacing:0;font-size:1rem}
+.basics p,.remember p{margin:6px 0}
+details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
+.basics .table-wrap{margin:6px 0 10px}
+.qa{max-width:80ch}
+@media (prefers-reduced-motion:reduce){details.lesson>summary::before{transition:none}}
+
 </style>
+<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
 <body>
 <main>
@@ -90,7 +122,7 @@ details.lesson li{margin:4px 0}
   <p class="lede">Build one ADK agent and run it on Google Cloud. Then go and look at everything that appears around it: its <strong>identity</strong>, its <strong>registry entry</strong>, the <strong>MCP servers</strong> and <strong>skill</strong> it uses, the <strong>A2A</strong> link to a second agent, and the <strong>CI/CD</strong> pipeline that deploys it. It uses the GA4 sample table and the Knowledge Catalog / OKF context from the <a href="https://github.com/zkrsyed/kc-okf">kc-okf POC</a>.</p>
   <nav class="toc">
     <a href="#map">Architecture</a><a href="#flow">Request flow</a><a href="#concepts">Key ideas</a><a href="#lessons">Lessons</a><a href="#journal">Learning journal</a><a href="#glossary">Glossary</a><a href="#labels">Labels</a>
-  </nav>
+  <button type="button" class="theme-toggle" id="themeToggle">Dark theme</button></nav>
 </header>
 
 <h2 id="map">Architecture</h2>
@@ -403,10 +435,38 @@ details.lesson li{margin:4px 0}
 <p class="diagram-note"><strong>Left out on purpose:</strong> RAG Engine and Vector Search (our data is a structured table), Code Execution (we run SQL, not Python), CodeMender and AI Content Detection (not about data agents). Details are in <a href="docs/lesson-plan.md">docs/lesson-plan.md</a>.</p>
 
 <h2 id="journal">Learning journal</h2>
-<p class="lede">What we did in each lesson, what we found, and the questions asked along the way, with the answers in plain words. It's written to be re-read later without the chat. The newest lesson is open; click a lesson to fold it. Evidence for every <strong>verified</strong> claim is in <code>results/</code>.</p>
+<p class="lede">What we did in each lesson, what we found, and the questions asked along the way, with the answers in plain words. It's written to be re-read later without the chat. Click a lesson to open it, or use the buttons to open or fold all of them. Evidence for every <strong>verified</strong> claim is in <code>results/</code>.</p>
+<div class="jctl"><button type="button" id="expandAll">Open all lessons</button><button type="button" id="collapseAll">Fold all lessons</button></div>
+<nav class="toc" id="jnav" aria-label="Jump to a lesson"></nav>
 
-<details class="lesson">
-<summary>Lesson 0 · The map <span class="when">2026-11-24</span></summary>
+<details class="lesson" id="l0">
+<summary><span class="num">Lesson 0</span><span class="ttl">The map</span><span class="when">2026-11-24</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p><strong>What this project is.</strong> A hands-on tour of Google's agent stack. We build one small agent that answers questions about a Google Analytics sample dataset, then look at everything that appears around it on Google Cloud: its identity, the registry, MCP servers, skills, evaluation and tracing.</p>
+<p><strong>The four parts of Google's Agent Platform</strong> (the 2026 name for Vertex AI):</p>
+<ul>
+<li><strong>Build</strong>: what you make agents with (ADK, skills, models).</li>
+<li><strong>Scale</strong>: where agents run (Agent Runtime, managed sessions, memory).</li>
+<li><strong>Govern</strong>: who an agent is and what it may do (Agent Identity, Agent Registry, Agent Gateway).</li>
+<li><strong>Optimize</strong>: how you know it works (evaluation, traces, prompt tuning).</li>
+</ul>
+<p><strong>Words you'll meet first</strong></p>
+<div class="table-wrap"><table>
+<thead><tr><th>Term</th><th>Plain meaning</th><th>First used</th></tr></thead>
+<tbody>
+<tr><td><strong>Agent</strong></td><td>A model in a loop: it reads the context, picks a tool, sees the result, and repeats until it can answer</td><td>Lesson 2</td></tr>
+<tr><td><strong>Session</strong></td><td>One conversation, with its events and saved state</td><td>Lesson 2</td></tr>
+<tr><td><strong>Trace</strong></td><td>A record of every model and tool call, so you can see what happened</td><td>Lesson 2</td></tr>
+<tr><td><strong>Tool</strong></td><td>A function the agent can call to do something or fetch data</td><td>Lesson 3</td></tr>
+<tr><td><strong>MCP</strong></td><td>A standard way for a server to offer tools to any agent</td><td>Lesson 3</td></tr>
+<tr><td><strong>Skill</strong></td><td>A folder of written know-how the agent reads when it needs it</td><td>Lesson 4</td></tr>
+</tbody></table></div>
+<p><strong>How we work.</strong> Each lesson has a README in <code>lessons/</code> with the explanation, the code and the commands. You run them and send me the output; I read your files and the traces, check the results, and update this page. Every claim is labelled <strong>verified</strong> (we ran it), <strong>docs</strong> (Google's documentation says so) or <strong>guess</strong> (not checked); see "How claims are labelled" at the bottom.</p>
+</div>
+<h4>What we did</h4>
+<ul>
+  <li>Wrote this page: the architecture diagram, the request flow, the key ideas, the lesson plan (lessons 0 to 21, plus an optional lesson 22) and the glossary.</li>
+</ul>
 <h4>Questions and answers</h4>
 <div class="qa"><p class="q">What makes up Google's "Agent Platform"?</p>
 <p>Gemini Enterprise Agent Platform (the new name for Vertex AI, 2026) has four pillars. <strong>Build</strong>: ADK, Agent Studio, Managed Agents API, Skill Registry, Model Garden. <strong>Scale</strong>: Agent Runtime, Sessions, Memory Bank, Code Execution. <strong>Govern</strong>: Agent Identity, Agent Registry, Agent Gateway, Model Armor. <strong>Optimize</strong>: evaluation, prompt optimizer, traces and Topology (<strong>docs</strong>).</p></div>
@@ -416,10 +476,19 @@ details.lesson li{margin:4px 0}
 <p>No. An ADK <em>plugin</em> is code that runs inside the agent's process (like middleware). It ships with the agent. Agents, MCP servers and skills are the three things that are deployed and registered on their own.</p></div>
 <div class="qa"><p class="q">Is "Optimize" like LangSmith for LangChain?</p>
 <p>Roughly, yes: evaluation, traces and prompt optimization in one place. The difference is that Google keeps the data in your own GCP project. Langfuse is the open-source, self-hostable equivalent; we compare them in lesson 16.</p></div>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>An agent, an MCP server and a skill are <strong>three separate things</strong>, each built, deployed and registered on its own.</li>
+<li>Identity says <strong>who</strong> is calling; IAM and the Agent Gateway decide <strong>what</strong> it may use.</li>
+<li>Every claim in this repo is labelled <strong>verified</strong>, <strong>docs</strong> or <strong>guess</strong>.</li>
+</ul></div>
 </details>
 
-<details class="lesson">
-<summary>Lesson 1 · Setup <span class="when">2026-11-24</span></summary>
+<details class="lesson" id="l1">
+<summary><span class="num">Lesson 1</span><span class="ttl">Setup</span><span class="when">2026-11-24</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>This lesson was plumbing. Before an agent can think, your machine needs a login that Google's libraries can use, a project to bill the calls to, and the right APIs switched on. We set that up and made one Gemini call to prove it works.</p>
+</div>
 <h4>What we did</h4>
 <ul>
   <li>Selected the <code>kc-okf</code> gcloud profile, checked ADC and its quota project, confirmed the three APIs (<code>aiplatform</code>, <code>dataplex</code>, <code>bigquery</code>) were already on.</li>
@@ -436,10 +505,19 @@ details.lesson li{margin:4px 0}
 <h4>Questions and answers</h4>
 <div class="qa"><p class="q">Where is the "Vertex AI API"? The console home page doesn't show it.</p>
 <p>The "Welcome to Gemini Platform" page is the product console. The API switch and its traffic graphs live under <strong>APIs &amp; Services → Enabled APIs</strong>, as <code>aiplatform.googleapis.com</code>. Its Metrics tab showed our <code>GenerateContent</code> call.</p></div>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>Two logins: <code>gcloud auth login</code> is for the CLI, <strong>ADC</strong> is for libraries like ADK.</li>
+<li>APIs are switched on <strong>per project</strong>; each lesson turns on only what it needs.</li>
+<li>We use Google Cloud, not an API key, because identity, IAM and audit logs only exist there.</li>
+</ul></div>
 </details>
 
-<details class="lesson">
-<summary>Lesson 2 · First ADK agent <span class="when">2026-11-24 → 2026-11-25</span></summary>
+<details class="lesson" id="l2">
+<summary><span class="num">Lesson 2</span><span class="ttl">First ADK agent</span><span class="when">2026-11-24 → 2026-11-25</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>An ADK agent is just a Python object: a name, an instruction and some tools. It does nothing until a <strong>Runner</strong> runs it. <code>adk run</code>, <code>adk web</code> and our own script are three different hosts for the same agent; they differ only in how you talk to it and where the conversation is saved. Langfuse shows every model call.</p>
+</div>
 <h4>What we did</h4>
 <ul>
   <li><code>adk create</code> made <code>agents/ga4_guide/</code>; we replaced <code>agent.py</code> with an agent that has one tool, <code>remember_analyst</code>, and <code>output_key="last_answer"</code>.</li>
@@ -580,10 +658,19 @@ details.lesson li{margin:4px 0}
 <p>Yes. The <code>langfuse</code> package (three <code>LANGFUSE_*</code> variables plus an import) captures the text itself. ADK's own OpenTelemetry spans need no new package but need the two content settings above. Both reach the same Langfuse.</p></div>
 <div class="qa"><p class="q">Would a web app do the same as the script?</p>
 <p>Either <strong>A</strong>: the web app imports the agent and runs its own Runner, exactly like the script (that's what <code>adk web</code> is); or <strong>B</strong>: the agent is deployed on Agent Runtime and the web app calls it over HTTP, and Google's server runs the Runner. We do A now and B in lessons 8 and 14.</p></div>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>The agent <strong>describes</strong> what to do; the Runner <strong>does</strong> it.</li>
+<li>State keys: no prefix = this conversation, <code>user:</code> = this user across conversations, <code>app:</code> = everyone, <code>temp:</code> = one turn.</li>
+<li>Tracing is the <strong>host's</strong> job, not the agent's. The agent code doesn't change.</li>
+</ul></div>
 </details>
 
-<details class="lesson">
-<summary>Lesson 3 · Real tools: Knowledge Catalog MCP and BigQuery <span class="when">2026-11-25</span></summary>
+<details class="lesson" id="l3">
+<summary><span class="num">Lesson 3</span><span class="ttl">Real tools: Knowledge Catalog MCP and BigQuery</span><span class="when">2026-11-25</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>Tools are how an agent does things instead of guessing. We gave it two toolsets: Google's hosted <strong>Knowledge Catalog</strong> (read the table's real schema) and <strong>BigQuery</strong> (run read-only SQL). <strong>MCP</strong> is the standard protocol a server uses to offer tools to any agent.</p>
+</div>
 <h4>What we're doing</h4>
 <ul>
   <li>Give <code>ga4_guide</code> two toolsets: Google's <strong>hosted Knowledge Catalog MCP server</strong> (read the table's real schema) and ADK's <strong>BigQueryToolset</strong> (run read-only SQL). Then ask the same December question as in lesson 2 and compare.</li>
@@ -624,10 +711,19 @@ details.lesson li{margin:4px 0}
 <div class="qa"><p class="q">Is <code>search_entries</code> the call that lists all tables?</p>
 <p>No. The agent already knew the table name from its instruction, so it searched for that one table to get its catalog address. <code>lookup_context</code> then returned the details. With many similar tables the agent would have to choose among the results; our instruction doesn't tell it to ask the user.</p></div>
 <p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">lessons/03-tools-and-mcp</a> · evidence: <code>results/03-tools-and-mcp.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li><code>tool_filter</code> is the cheapest guardrail: the agent never learns the hidden tools exist.</li>
+<li>The order is <strong>search, then look up, then run</strong> the SQL.</li>
+<li>Grounding has a price: about $0.10 per question here, mostly the catalog text resent on every model call.</li>
+</ul></div>
 </details>
 
-<details class="lesson">
-<summary>Lesson 4 · A skill <span class="when">2026-11-26</span></summary>
+<details class="lesson" id="l4">
+<summary><span class="num">Lesson 4</span><span class="ttl">A skill</span><span class="when">2026-11-26</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>A skill is a <strong>cheat sheet in a folder</strong>: written rules the agent reads before it acts. Ours holds the rules for querying the table (use the partition date column, wrap refunds in <code>IFNULL</code>, drop the last 3 days, never show city names). The main point is that the agent behaves the <strong>same way every time</strong>.</p>
+</div>
 <h4>What we're doing</h4>
 <ul>
   <li>Write the rules for querying our table (use <code>event_date_dt</code>, wrap refunds in <code>IFNULL</code>, drop the last 3 days, never show city names) into a <strong>skill</strong> (<code>skills/ga4-context/</code>): a cheat sheet the agent reads before it writes SQL. Then check whether it behaves the <strong>same way every time</strong> and what it does to cost. Each question was run 3 times, before (lesson 3 agent) and after (with the skill).</li>
@@ -686,6 +782,12 @@ details.lesson li{margin:4px 0}
 <div class="qa"><p class="q">Is "Resource exhausted" a credentials problem?</p>
 <p>No. The tool call before it worked, and tiny Gemini calls with the same credentials returned 200. A 429 means rate limit or capacity; an auth problem is a 401 or 403.</p></div>
 <p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">lessons/04-skill</a> · evidence: <code>results/04-skill.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>Repeatable behavior first, cost second: the revenue question followed the 3-day rule <strong>3 of 3</strong> times with the skill vs <strong>0 of 3</strong> without, at about half the cost.</li>
+<li>A skill is knowledge, not enforcement. Hard guarantees need code-level guardrails (lessons 9 and 11).</li>
+<li>The <code>description</code> decides whether the skill is ever loaded.</li>
+</ul></div>
 </details>
 
 <h2 id="glossary">Glossary</h2>
@@ -825,6 +927,29 @@ document.getElementById('q').addEventListener('input', e => {
     tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 });
+
+// theme toggle and journal controls
+(function(){
+  const root=document.documentElement, btn=document.getElementById('themeToggle');
+  const mq=window.matchMedia('(prefers-color-scheme: dark)');
+  const eff=()=>root.getAttribute('data-theme')||(mq.matches?'dark':'light');
+  const paint=()=>{const t=eff();btn.textContent=t==='dark'?'Light theme':'Dark theme';btn.setAttribute('aria-label','Switch to '+(t==='dark'?'light':'dark')+' theme');};
+  btn.addEventListener('click',()=>{const n=eff()==='dark'?'light':'dark';root.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(e){};paint();});
+  if(mq.addEventListener) mq.addEventListener('change',paint);
+  paint();
+  const lessons=[...document.querySelectorAll('details.lesson')];
+  const nav=document.getElementById('jnav');
+  lessons.forEach(d=>{
+    const a=document.createElement('a'); a.href='#'+d.id;
+    a.textContent=d.querySelector('.num').textContent.replace('Lesson ','L')+' '+d.querySelector('.ttl').textContent.split(':')[0];
+    a.addEventListener('click',e=>{e.preventDefault();d.open=true;d.scrollIntoView({block:'start'});try{history.replaceState(null,'','#'+d.id)}catch(x){}});
+    nav.appendChild(a);
+  });
+  document.getElementById('expandAll').addEventListener('click',()=>lessons.forEach(d=>d.open=true));
+  document.getElementById('collapseAll').addEventListener('click',()=>lessons.forEach(d=>d.open=false));
+  const h=location.hash&&document.getElementById(location.hash.slice(1));
+  if(h&&h.matches('details.lesson')) h.open=true;
+})();
 </script>
 </body>
 </html>

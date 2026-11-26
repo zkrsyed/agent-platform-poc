@@ -46,15 +46,25 @@ uv run python scripts/registry.py agents us-central1
 gcloud agent-registry agents list --project kc-okf-poc-261122 --location global
 ```
 
-**Look for:** `ga4-guide`. The docs say Agent Runtime agents are registered automatically, but not in which location; that's why we look in both (**to check**). It may take a few minutes after enabling the API.
+**Look for:** `ga4-guide` in **`us-central1`**, the region it's deployed in, and not in `global` (**verified**). The other entry, **Workspace Agent**, is Google's: one copy per location (the console's Agents tab lists 47 of them), listed automatically, not created by you.
 
 ### Step 3. What the registry knows about it
 
 ```bash
-uv run python scripts/registry.py show NAME
+uv run python scripts/registry.py show ga4-guide
+uv run python scripts/registry.py show "Workspace Agent"
 ```
 
-Use the full `name` that Step 2 printed. **Look for:** whether there's an **agent card** (an A2A description of the agent's skills and protocol, which lesson 12 needs) or only basic details. That's an open question in our lesson plan: a blog said auto-registered agents get a `CUSTOM` entry without a card (**guess**).
+The script accepts a display name or a full resource name. **What we saw (verified):**
+
+| | `ga4-guide` (ours) | Workspace Agent (Google's) |
+|---|---|---|
+| `protocols.type` | **`CUSTOM`** | `A2A_AGENT`, `protocolVersion: 0.3.0` |
+| `interfaces` | Agent Runtime's own API: `.../reasoningEngines/ID:query` and `:streamQuery` | `https://workspaceagent.googleapis.com/a2a` |
+| `skills` | none | `create_presentation`, with a description |
+| attributes | `Framework: google-adk`, `RuntimeIdentity: principal://...reasoningEngines/ID` (its agent identity from lesson 8) | |
+
+So an auto-registered ADK agent gets a **`CUSTOM`** entry with **no agent card** (the console calls it "Non A2A"). An **agent card** is what Google's agent has: protocol, URL and skills, everything another agent needs to call it over A2A. Lesson 12 adds one to ours.
 
 ### Step 4. Google's MCP servers, registered by themselves
 
@@ -62,17 +72,15 @@ Use the full `name` that Step 2 printed. **Look for:** whether there's an **agen
 uv run python scripts/registry.py mcp global
 ```
 
-**Look for:** Google's MCP servers for APIs this project uses, probably including the Knowledge Catalog (Dataplex) and BigQuery ones. The docs say Google's remote MCP servers "are automatically registered" when you enable an API that has one (**docs**).
+**What we saw (verified):** **14** Google MCP servers, each named after its API: `dataplex.googleapis.com` (Knowledge Catalog), `bigquery.googleapis.com`, `aiplatform`, `agentregistry`, `apptopology`, `backupdr`, `bigquerydatatransfer`, `bigquerymigration`, `cloudtrace`, `compute`, `dataform`, `logging`, `monitoring`, `storage`. The docs say Google's remote MCP servers "are automatically registered" for APIs that have one.
 
 ### Step 5. Connect to an MCP server through the registry
 
-Pick the Knowledge Catalog's entry from Step 4 and:
-
 ```bash
-uv run python scripts/registry.py tools NAME
+uv run python scripts/registry.py tools dataplex.googleapis.com
 ```
 
-`get_mcp_toolset(NAME)` asks the registry for the server's **address and auth**, then connects. **Look for:** the same tools as Lesson 3 (`search_entries`, `lookup_context`, ...), but our code never wrote `https://dataplex.googleapis.com/mcp`. (Not yet verified: ADK resolves auth "from the server's IAM bindings"; if this step fails on auth, send me the error.)
+`get_mcp_toolset(name)` asks the registry for the server's **address and auth**, then connects. **What we saw (verified):** the catalog's tools, the same as Lesson 3, although our code never wrote `https://dataplex.googleapis.com/mcp`. Note that it lists **all** of them, including write tools like `delete_entry`, `upsert_entry` and `set_entry_group_iam_policy`: the registry gives you the whole server. `get_mcp_toolset` has no `tool_filter` option, but setting `toolset.tool_filter = [...]` afterwards works (**verified**: only the 3 read tools remained). Step 12's agent does that.
 
 Also open **Agents → Govern → Agent Registry** in the console and find the same entries.
 
@@ -168,15 +176,13 @@ from . import agent as agent  # noqa: E402
 Create **`agents/ga4_registry/agent.py`**:
 
 ```python
-"""ga4_registry (lesson 10): ga4_guide's skill and catalog, found in Agent Registry instead of hard-coded.
+"""ga4_registry (lesson 10): ga4_guide's skill and catalog tools, found in Agent Registry instead of hard-coded.
 
 - The skill comes from the registry: SkillToolset(registry=GCPSkillRegistry(...)) gives the agent a
-  `search_skills` tool, and `load_skill` downloads a registry skill by name.
-- The catalog MCP server comes from the registry too: we look it up by name, and the registry
-  supplies its URL (no "https://dataplex.googleapis.com/mcp" in this file).
+  `search_skills` tool, and `load_skill` downloads a registry skill by name. No skill folder here.
+- The catalog MCP server comes from the registry too: we look it up by its display name, and the
+  registry supplies its address and auth. No "https://dataplex.googleapis.com/mcp" in this file.
 """
-
-import os
 
 from google.adk.agents import Agent
 from google.adk.integrations.agent_registry import AgentRegistry
@@ -187,46 +193,47 @@ from google.adk.tools.skill_toolset import SkillToolset
 PROJECT = "kc-okf-poc-261122"
 MODEL = Gemini(model="gemini-3.5-flash", client_kwargs={"enterprise": True, "location": "global"})
 
-# The registry entry for Google's Knowledge Catalog MCP server. Find the name with
-#   uv run python scripts/registry.py mcp
-CATALOG_MCP_NAME = os.environ.get("CATALOG_MCP_NAME", "")
+
+def registry_mcp_toolset(display_name: str, tool_filter: list[str]):
+    """Find an MCP server in Agent Registry by its display name and connect to it."""
+    registry = AgentRegistry(project_id=PROJECT, location="global")
+    for server in registry.list_mcp_servers().get("mcpServers", []):
+        if server.get("displayName") == display_name:
+            toolset = registry.get_mcp_toolset(server["name"])
+            toolset.tool_filter = tool_filter  # the server offers ~20 tools, some that write: keep 3 readers
+            return toolset
+    raise LookupError(f"No MCP server named {display_name!r} in Agent Registry")
+
 
 skills = SkillToolset(
     registry=GCPSkillRegistry(project_id=PROJECT, location="global"),
     tool_filter=["search_skills", "load_skill", "load_skill_resource"],
 )
-
-tools = [skills]
-if CATALOG_MCP_NAME:
-    tools.append(AgentRegistry(project_id=PROJECT, location="global").get_mcp_toolset(CATALOG_MCP_NAME))
+catalog = registry_mcp_toolset("dataplex.googleapis.com", ["search_entries", "lookup_context", "lookup_entry"])
 
 root_agent = Agent(
     name="ga4_registry",
     model=MODEL,
-    description="Explains the rules for the GA4 table, using a skill found in Agent Registry.",
+    description="Explains the rules for the GA4 table, using a skill and catalog tools found in Agent Registry.",
     instruction="""You explain the data team's rules for the BigQuery table
 `kc-okf-poc-261122.ga4_sample.events`. You have no skill folder of your own: first call
 `search_skills` to find the right skill in the registry, then `load_skill` with the name it returns,
 and answer from it. Use the catalog tools only if the skill doesn't cover the question.
 Say which skill (and catalog entry) each answer came from. Never invent rules.""",
-    tools=tools,
+    tools=[skills, catalog],
 )
 ```
 
 What's different from `ga4_guide`:
 - `SkillToolset(registry=GCPSkillRegistry(...))` with **no** `skills=[...]`: the agent has no skill folder. ADK adds a `search_skills` tool, and `load_skill` downloads a registry skill by name (**verified** in ADK's code).
-- The catalog tools come from `AgentRegistry(...).get_mcp_toolset(CATALOG_MCP_NAME)`, where `CATALOG_MCP_NAME` is the Knowledge Catalog entry's full name from Step 4. It's read from the agent's own `.env` (`adk web` loads an agent folder's `.env` before importing it, as its log shows: "Loaded .env file for ..."). Without it, the agent runs with the skill only.
-- It imports and builds locally (**verified**); the run is **not yet verified**.
+- The catalog tools come from `registry_mcp_toolset("dataplex.googleapis.com", [...])`: it finds the server by its **display name** in the registry, connects with the address and auth the registry gives, and keeps only the 3 read tools.
+- It imports, finds the catalog in the registry and builds the filtered toolset locally (**verified**); the run is **not yet verified**.
 
-Give the agent its own `.env` (a copy of `ga4_guide`'s, for the Google settings and tracing), add one line, and start the dev UI:
+Start the dev UI:
 
 ```bash
-cp agents/ga4_guide/.env agents/ga4_registry/.env
-echo 'CATALOG_MCP_NAME=projects/.../locations/global/mcpServers/...' >> agents/ga4_registry/.env
 ./scripts/adk.sh web agents
-```
-
-Replace the `CATALOG_MCP_NAME` value with the name from Step 4. Pick **ga4_registry**, New Session, and ask: `Why must daily revenue leave out the last 3 days?`
+``` Pick **ga4_registry**, New Session, and ask: `Why must daily revenue leave out the last 3 days?`
 
 **Look for:** `search_skills`, then `load_skill` with the registry's skill name (probably `private-ga4-context`), then an answer that cites it.
 
@@ -237,7 +244,7 @@ git status --short
 git add scripts/registry.py scripts/mcp_toolspec.py scripts/skill_registry.py agents/ga4_registry/__init__.py agents/ga4_registry/agent.py && git commit -m "Lesson 10: Agent Registry: discovery, our MCP server and skill registered, ga4_registry agent"
 ```
 
-(`agents/ga4_registry/.env` is ignored by git, like the others.)
+
 
 ---
 
@@ -253,7 +260,8 @@ git add scripts/registry.py scripts/mcp_toolspec.py scripts/skill_registry.py ag
   uv run python scripts/registry.py show   NAME              # everything the registry knows about one entry
   uv run python scripts/registry.py tools  NAME              # connect to a registered MCP server and list its tools
 
-LOCATION defaults to "global". NAME is the full resource name that `agents` or `mcp` printed.
+LOCATION defaults to "global". NAME is either the full resource name that `agents` or `mcp` printed,
+or just the display name (for example ga4-guide), which is looked up in global and us-central1.
 """
 
 import asyncio
@@ -278,7 +286,23 @@ def show_list(kind: str, location: str) -> None:
         print(f"- {item.get('displayName', '?')}\n    {item['name']}")
 
 
+def resolve(name: str) -> str:
+    """Accept a display name like "ga4-guide" as well as a full resource name."""
+    if name.startswith("projects/"):
+        return name
+    for location in ("global", "us-central1"):
+        reg = registry(location)
+        for kind, key in (("agents", "agents"), ("mcp", "mcpServers")):
+            data = reg.list_agents() if kind == "agents" else reg.list_mcp_servers()
+            for item in data.get(key, []):
+                if item.get("displayName", "").lower() == name.lower():
+                    return item["name"]
+    sys.exit(f"No agent or MCP server named {name!r} in global or us-central1. "
+             "Run `agents` or `mcp` to see the names.")
+
+
 def show(name: str) -> None:
+    name = resolve(name)
     location = name.split("/locations/")[1].split("/")[0]
     reg = registry(location)
     info = reg.get_agent_info(name) if "/agents/" in name else reg.get_mcp_server(name)
@@ -286,6 +310,7 @@ def show(name: str) -> None:
 
 
 async def tools(name: str) -> None:
+    name = resolve(name)
     location = name.split("/locations/")[1].split("/")[0]
     toolset = registry(location).get_mcp_toolset(name)  # URL and auth come from the registry, not our code
     try:

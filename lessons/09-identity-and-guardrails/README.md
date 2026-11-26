@@ -77,10 +77,14 @@ gcloud projects add-iam-policy-binding kc-okf-poc-261122 --member="$P" --role="r
 The narrowest scope is the dataset. BigQuery grants dataset roles with SQL:
 
 ```bash
-bq query --use_legacy_sql=false "GRANT \`roles/bigquery.dataViewer\` ON SCHEMA \`kc-okf-poc-261122.ga4_sample\` TO \"$P\""
+bq query --project_id=kc-okf-poc-261122 --use_legacy_sql=false "GRANT \`roles/bigquery.dataViewer\` ON SCHEMA \`kc-okf-poc-261122.ga4_sample\` TO \"$P\""
 ```
 
-Google's docs show this `GRANT` with `user:` and `serviceAccount:` members; whether it accepts a `principal://` member is **not yet verified**. If it says the member is invalid, tell me: the fallback is the same role on the project (`gcloud projects add-iam-policy-binding ... --role=roles/bigquery.dataViewer`). In our project that's almost the same thing, because `ga4_sample` is the only dataset (**verified**), but it's wider in principle.
+Google's docs show this `GRANT` with `user:` and `serviceAccount:` members, but it **accepts a `principal://` member too** (**verified** on 2026-11-26: `Current status: DONE`). Two traps we hit:
+- `--project_id` matters: without it `bq` runs the job in its own default project (ours was another project, so the job ID started with that project's name).
+- If the error says "The member  is of an unknown type" with **nothing** between "member" and "is", `$P` is empty: you're in a new terminal tab. Run Step 2 again.
+
+The fallback, if a `GRANT` ever refuses a member, is the same role on the project (wider in principle; here `ga4_sample` is the only dataset, **verified**).
 
 ### Step 5. Ask again
 
@@ -90,7 +94,7 @@ IAM changes can take a minute or two to apply (**guess**, typical for IAM).
 uv run python scripts/runtime.py ask $R "What was net merch revenue for December 2020?"
 ```
 
-**Look for:** `execute_sql` returning rows and an answer of about **$160,555**. The catalog calls may still fail; that's next.
+**Look for:** `execute_sql` returning rows and an answer of about **$160,555** (**verified**: `{'status': 'SUCCESS', 'rows': [{'net_merch_revenue_usd': 160555.0}]}`, the same question that got 403 in Lesson 8). The agent may not call the catalog at all, because the skill is enough; Step 6 tests the catalog on purpose.
 
 ### Step 6. Let it read the catalog
 

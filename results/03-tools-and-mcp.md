@@ -36,6 +36,8 @@ Total: 5 model calls, 4 tool calls, **30.8 s**, about **$0.10** (Langfuse's own 
 7. **`mcp` 2.x renamed its low-level client function** (`streamablehttp_client` → `streamable_http_client`), so we go through ADK's `McpToolset`.
 8. **Google also hosts a BigQuery MCP server** (`https://bigquery.googleapis.com/mcp`, 9 tools). Lesson 11 swaps to it so Agent Gateway can govern the SQL calls (**docs**).
 
+9. **The catalog result is sent twice.** The `lookup_context` tool result has `content[0].text` (36,768 characters) and `structuredContent` (36,744 characters): the same text, and both go to the model (the message is about 75,000 characters). Stripping one copy would roughly halve that message (**guess**; lesson 9's plugin can try).
+
 ## Tracing fixes found along the way (applies to every lesson from now on)
 
 - **`adk web` reads the tracing settings at startup, from the shell**, not from `agents/ga4_guide/.env`. Started plainly it sent nothing; sessions run before the restart are not in Langfuse.

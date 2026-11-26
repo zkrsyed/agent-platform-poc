@@ -377,7 +377,7 @@ details.lesson li{margin:4px 0}
     <tr><td>1</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/01-setup/README.md">Setup</a></strong> <span class="cost">☁</span></td><td>uv, gcloud profile, ADC, APIs, quotas</td><td><span class="badge done">done</span></td></tr>
     <tr><td>2</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/02-first-agent/README.md">First ADK agent</a></strong></td><td>Agent, Runner, Session, State, Events; the <code>adk web</code> dev UI; first traces in Langfuse</td><td><span class="badge done">done</span></td></tr>
     <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>4</td><td><strong>A skill (local)</strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge progress">in progress</span></td></tr>
     <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>7</td><td><strong>Multi-agent in one app</strong></td><td>Orchestrator + sub-agents; transfer vs <code>AgentTool</code> vs Sequential/Parallel/Loop vs graph <code>Workflow</code>; single vs multi-agent score</td><td><span class="badge planned">planned</span></td></tr>
@@ -582,7 +582,7 @@ details.lesson li{margin:4px 0}
 <p>Either <strong>A</strong>: the web app imports the agent and runs its own Runner, exactly like the script (that's what <code>adk web</code> is); or <strong>B</strong>: the agent is deployed on Agent Runtime and the web app calls it over HTTP, and Google's server runs the Runner. We do A now and B in lessons 8 and 14.</p></div>
 </details>
 
-<details class="lesson" open>
+<details class="lesson">
 <summary>Lesson 3 · Real tools: Knowledge Catalog MCP and BigQuery <span class="when">2026-11-25</span></summary>
 <h4>What we're doing</h4>
 <ul>
@@ -624,6 +624,29 @@ details.lesson li{margin:4px 0}
 <div class="qa"><p class="q">Is <code>search_entries</code> the call that lists all tables?</p>
 <p>No. The agent already knew the table name from its instruction, so it searched for that one table to get its catalog address. <code>lookup_context</code> then returned the details. With many similar tables the agent would have to choose among the results; our instruction doesn't tell it to ask the user.</p></div>
 <p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">lessons/03-tools-and-mcp</a> · evidence: <code>results/03-tools-and-mcp.md</code>.</p>
+</details>
+
+<details class="lesson" open>
+<summary>Lesson 4 · A skill <span class="when">2026-11-25 → in progress</span></summary>
+<h4>What we're doing</h4>
+<ul>
+  <li>Package the table's business rules as a <strong>skill</strong> (<code>skills/ga4-context/</code>), load it with ADK's <code>SkillToolset</code>, and measure against lesson 3: SQL quality, model calls, tokens, cost. The lesson starts with a baseline run of the lesson 3 agent on two new questions (daily net revenue for January; top cities), so the comparison is fair.</li>
+  <li>Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">lessons/04-skill</a>. Results will be added here when we've run it.</li>
+</ul>
+<h4>Key ideas</h4>
+<ul>
+  <li><strong>Skill = knowledge, not an action.</strong> A function or MCP tool does something; a skill puts text in the prompt. Nothing runs.</li>
+  <li><strong>Progressive disclosure, three levels:</strong> name + description (always in the prompt, 314 characters), the <code>SKILL.md</code> body (when the agent calls <code>load_skill</code>, 1,658 characters), reference files (only when it calls <code>load_skill_resource</code>, about 1,000 each). For comparison, lesson 3's catalog result was about 36,700 characters, sent twice.</li>
+  <li><strong>The description is the trigger.</strong> It's all the model sees until it loads the skill, so it says what the skill is and when to use it. <code>name</code> must equal the folder name (verified in the loader).</li>
+  <li><strong><code>SkillToolset</code> offers 4 tools</strong>: <code>list_skills</code>, <code>load_skill</code>, <code>load_skill_resource</code>, <code>run_skill_script</code>. We hide the last one with <code>tool_filter</code>: a skill can carry code, and we don't need that. ADK also adds a block to the system prompt telling the model it <em>must</em> load a relevant skill (verified).</li>
+</ul>
+<h4>Facts checked before the lesson (verified 2026-11-25)</h4>
+<ul>
+  <li>The rules come from the earlier kc-okf POC's catalog pages. I checked them against the table before putting them in a skill: 92 days from 2020-11-01 to 2021-01-31; 308,695 rows with <code>source = '(data deleted)'</code>; and <strong>all 5,692 purchase rows have a NULL <code>refund_value_in_usd</code></strong>, so <code>IFNULL</code> is essential (without it, revenue minus refunds is NULL).</li>
+  <li>The "72-hour finality, drop the last 3 days" rule is a <strong>policy</strong>: the data shows no gap in those days. The skill labels it as policy.</li>
+  <li>The lesson's code was extracted into a scratch copy and tested: the skill loads, the agent builds with 9 tools, both SQL snippets validate with a free dry run.</li>
+  <li><strong>Found while preparing:</strong> the catalog's <code>lookup_context</code> result contains the same 36,700 characters twice (<code>content</code> and <code>structuredContent</code>), and both go to the model. A lesson 9 plugin could strip one.</li>
+</ul>
 </details>
 
 <h2 id="glossary">Glossary</h2>

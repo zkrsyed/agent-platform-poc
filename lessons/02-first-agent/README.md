@@ -348,11 +348,16 @@ and make this the first line inside `main()`:
 uv run python scripts/runner_demo.py
 ```
 
-Then open Langfuse → your project → **Tracing**. **Look for** (span names are a **guess** until we see them):
-- one trace per turn, so two traces for the two messages
-- inside the turn-1 trace: the agent span → a Gemini call → `remember_analyst` → a second Gemini call
-- the prompt the model really received, with `{user:analyst_name?}` already filled in, and the token counts
-- turn 2 has no tool span
+Then open Langfuse → your project → **Tracing**. What we **verified** (2026-11-25):
+- **Two traces**, one per message, named `invoke_workflow ga4_guide`. Both carry the ADK session ID as `gen_ai.conversation.id`, so Langfuse groups them as one **session**.
+- Inside turn 1: `invoke_agent ga4_guide` → `generate_content gemini-3.5-flash` → **`remember_analyst`** (a TOOL span, 2 ms) → a second `generate_content`. Turn 2 has **no tool span**.
+- Per model call: latency, **token counts** (turn 1: 562 + 664 tokens; turn 2: 1,111) and a **cost** (about $0.004 per turn).
+- The graph panel draws `__start__ → invoke_workflow → invoke_agent → generate_content → __end__`.
+- **Not there by default:** the prompt text, your message and the model's reply. Trace Input/Output show `null`, and each model call's input holds only the tool list. See the box below.
+
+The names say `invoke_workflow` because ADK 2.x runs every agent as a graph **workflow** (**verified** in the span attributes: `gen_ai.operation.name = invoke_workflow`).
+
+> **Why the text is missing (verified in the code, fix not yet tried):** in ADK 2.15, message content is sent as OpenTelemetry **log events**, and only if `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` is on. We only set up the **traces** address, and Langfuse takes traces, so the text never arrives. ADK also has an *experimental* mode, `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`, that puts `gen_ai.input.messages` on the spans themselves (**guess** that this fills in Langfuse; to try).
 
 **`adk web` too:** `adk web` sets up the same exporter by itself when the variables are set (**verified** in `google/adk/cli/api_server.py`). Load the `.env` into the shell first, so they are there when it starts:
 
@@ -360,7 +365,7 @@ Then open Langfuse → your project → **Tracing**. **Look for** (span names ar
 set -a && source agents/ga4_guide/.env && set +a && uv run adk web agents
 ```
 
-> ADK puts prompts and replies into the spans by default (`ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS`, **verified** in `telemetry/tracing.py`). That's what we want in a private Langfuse. For a shared or production tracing backend, think about whether prompts may contain personal data.
+> Once message content is switched on, prompts and replies leave your process. That's fine for a private Langfuse; for a shared or production backend, think about whether they may contain personal data.
 
 ## Step 6. Commit your work
 

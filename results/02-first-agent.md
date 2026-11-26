@@ -1,6 +1,6 @@
 # Lesson 2 results: First ADK agent
 
-Run on 2026-11-24 and 2026-11-25. Everything on this page is **verified** unless marked otherwise. **Status: in progress** (Steps 1–5 done; Step 5b Langfuse and Step 6 commit still to do).
+Run on 2026-11-24 and 2026-11-25. Everything on this page is **verified** unless marked otherwise. **Status: done** (Steps 1–6). One optional experiment is open: getting prompt text into Langfuse.
 
 ## What worked
 
@@ -12,6 +12,7 @@ Run on 2026-11-24 and 2026-11-25. Everything on this page is **verified** unless
 | 4. `adk web` | Same three turns; Events, State, Trace and the agent graph all visible |
 | 4b. `sqlite3` on `.adk/session.db` | Every table read, see below |
 | 5. `scripts/runner_demo.py` | Ran first time, output below |
+| 5b. Traces in our own Langfuse | Worked with three `OTEL_*` lines in `.env` and two lines in the script; no new package. Details below |
 
 ## Step 5: the Runner by hand (2026-11-25)
 
@@ -30,6 +31,28 @@ Findings:
 2. The event stream the script prints is the same stream `adk web` shows in its Events tab and `adk run` prints. Our script was a Runner host with about 50 lines.
 3. `InMemorySessionService` left no trace: `session.db` has no `analyst-1` rows (**guess**, not queried; check with `SELECT DISTINCT user_id FROM sessions`).
 4. 6 events here vs 8 in the `adk run` session: the earlier sessions had one extra user/model exchange (the model first asked for the team).
+
+## Step 5b: the same run in Langfuse (2026-11-25)
+
+Langfuse v3.225.8, self-hosted in Docker on the same server, new project `agent-platform-poc` in the existing org. Read back through Langfuse's API with the project key.
+
+| Seen | Detail |
+|---|---|
+| Traces | 2, both `invoke_workflow ga4_guide`, same `sessionId` (= ADK session ID) |
+| Turn 1 spans | `invoke_workflow` (SPAN, 4.4 s) → `invoke_agent` (AGENT) → `generate_content gemini-3.5-flash` (GENERATION, 562 tokens, 2.2 s) → `remember_analyst` (TOOL, 0.002 s) → `generate_content` (664 tokens, 2.0 s) |
+| Turn 2 spans | `invoke_workflow` (2.2 s) → `invoke_agent` → `generate_content` (1,111 tokens). **No TOOL span** |
+| Cost | about $0.0040 (turn 1) and $0.0039 (turn 2), computed by Langfuse from the model name and tokens |
+| Resource / scope | `service.name = ga4_guide` (from `OTEL_SERVICE_NAME`), scope `gcp.vertex.agent` version `2.15.0` |
+| Not captured | Prompt text, user message and model reply. Trace input/output `null`; the model call's input holds only the tool declaration; the TOOL span's output is `null` |
+
+Findings:
+
+1. **Tracing needed no change to `agent.py`.** The host (our script) switches it on with `maybe_set_otel_providers()`; `adk web` does it itself when the `OTEL_*` variables are set (**verified** in the ADK source, not yet run).
+2. **Our lesson text was wrong about the prompt.** We expected to see the prompt with the name filled in. Reason (**verified** in the code): ADK 2.15 emits message content as log events, gated by `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`, and we only export traces. Langfuse has no logs endpoint (**docs**). Next try: `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental` (**guess**).
+3. **The first login line was wrong:** the raw secret key was pasted instead of base64(`public:secret`). A direct request showed the correct header is accepted (HTTP 200).
+4. **Two ways to connect:** Langfuse's own `LANGFUSE_*` variables need its Python package; the OpenTelemetry way needs nothing new. We used OTel (same idea as Cloud Trace in lesson 16).
+5. The Langfuse sign-in page's "forgot password" doesn't work here (no email set up). The Docker setup also holds an initial password.
+6. An API key was shown in a screenshot in the chat; rotate it when the POC ends.
 
 ## Where the data lives: `agents/ga4_guide/.adk/session.db`
 

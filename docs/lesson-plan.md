@@ -10,7 +10,7 @@ Each lesson's status goes `planned` → `in progress` → `done`. Each lesson be
 |---|---|---|---|---|
 | 0 | **Map** | The whole stack and how the pieces connect | Read `index.html` | done |
 | 1 | **Setup** ☁ | uv, gcloud profile, ADC, which APIs exist, quotas | `pyproject.toml`; enable APIs | done |
-| 2 | **First ADK agent** | `Agent`, Runner, Session, State, Events; the `adk web` dev UI | `agents/ga4_guide/agent.py`; `adk web`, `adk run`, `runner_demo.py` | in progress |
+| 2 | **First ADK agent** | `Agent`, Runner, Session, State, Events; the `adk web` dev UI | `agents/ga4_guide/agent.py`; `adk web`, `adk run`, `runner_demo.py`, traces in Langfuse | done |
 | 3 | **Tools + Google's MCP** | Function tools, toolsets, MCP client, remote Knowledge Catalog MCP, BigQuery tool, grounding | Add `McpToolset` for `dataplex.googleapis.com/mcp` and a BigQuery tool | planned |
 | 4 | **A skill (local)** | Agent Skills, `SKILL.md`, progressive disclosure, skill vs MCP vs tool | `skills/ga4-context/` built from the kc-okf OKF pages (plus OKF's `okf-consume`), loaded with `SkillToolset` | planned |
 | 5 | **Your own MCP server** ☁ | MCP server side (tools, resources, prompts); stdio vs Streamable HTTP; securing it on Cloud Run (invoker role, ID tokens) | `mcp_servers/okf/` with FastMCP; run it locally, then on Cloud Run | planned |

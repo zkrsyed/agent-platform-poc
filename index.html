@@ -420,7 +420,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge done">done</span></td></tr>
     <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge done">done</span></td></tr>
     <tr><td>8</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">Deploy to Agent Runtime</a></strong> <span class="cost">☁</span></td><td><code>adk deploy agent_engine</code> of a clean build copy (skill inside, no Langfuse key), Agent Identity, scale to zero; the deliberate first 403</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>9</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs tool calls and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>9</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/09-identity-and-guardrails/README.md">Identity, IAM, guardrails in code</a></strong> <span class="cost">☁</span></td><td>Least-privilege roles for the agent principal (one 403 at a time); a <code>GuardrailsPlugin</code> that logs tool calls, blocks write and city-level SQL, asks before a full-table scan, and stops retry loops</td><td><span class="badge progress">in progress</span></td></tr>
     <tr><td>10</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry metadata; skill loaded from Skill Registry; MCP server used from 3 clients; optional Claude Code plugin</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>11</td><td><strong>Agent Gateway + governance</strong> <span class="cost">☁</span></td><td>Egress policy per principal; block <code>modify_entry</code> on the network; ENFORCED; Model Armor; semantic governance</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>12</td><td><strong>A2A between agents</strong> <span class="cost">☁</span></td><td>A separately deployed data policy agent with its own identity; found in the Registry and called over A2A through the Gateway</td><td><span class="badge planned">planned</span></td></tr>
@@ -1122,6 +1122,29 @@ agents/ga4_guide/.env (Langfuse key)      ✗      build/ga4_guide/.env  (3 GOOG
 <li>When a deploy fails, read the container log.</li>
 <li>Every console feature has a switch (an API, a flag, an organization); we turn each on when its lesson comes.</li>
 </ul></div>
+</details>
+<details class="lesson" id="l9">
+<summary><span class="num">Lesson 9</span><span class="ttl">Identity, IAM and guardrails in code</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>Two layers of control. <strong>IAM</strong> decides what the agent's principal <em>can reach</em>: we grant only the roles it needs, on the smallest scope (least privilege). A <strong>plugin</strong> decides what it <em>may do</em> inside that, on every tool call, whatever the model decides: it can log, block, or pause for a human (<strong>tool confirmation</strong>). Lesson 11 adds a third layer on the network.</p>
+</div>
+<pre class="diagram">model decides a tool call
+   │
+   ▼  GuardrailsPlugin.before_tool_callback   (code: log / BLOCK / ask a human)
+   │
+   ▼  the tool calls BigQuery as the agent's principal
+   │
+   ▼  IAM: does the principal have the role?   (403 if not)</pre>
+<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+<ul>
+  <li>Today the only agent binding in the project is <code>roles/aiplatform.agentDefaultAccess</code> for a <code>principalSet</code> (every agent in the project): that's why Gemini worked in lesson 8 and nothing else did.</li>
+  <li>Plugin tests: write SQL and <code>geo.city</code> queries are blocked; a query without <code>event_date_dt</code> pauses for approval; after 3 failed tool calls the 4th is blocked.</li>
+  <li>Approval flow, real run: the agent wrote a full-table count, the plugin paused it (<code>adk_request_confirmation</code>), approval let it run: 4,295,584 rows.</li>
+  <li>ADK's loader looks for <code>app</code> first, then <code>root_agent</code>, so wrapping the agent in an <code>App</code> with plugins works in <code>adk web</code> and <code>adk deploy</code>.</li>
+  <li><code>runtime.py principal</code> prints the IAM member string; the resource name works with the project ID as well as the number.</li>
+  <li>Docs: <code>roles/bigquery.jobUser</code> only on projects; <code>roles/bigquery.dataViewer</code> on the dataset; don't give agents <code>roles/aiplatform.user</code>. Not verified yet: the catalog MCP role, and whether a dataset <code>GRANT</code> accepts a <code>principal://</code> member.</li>
+</ul>
+<p class="diagram-note">Results will be added when you've run it.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

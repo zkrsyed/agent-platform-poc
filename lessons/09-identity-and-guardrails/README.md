@@ -42,6 +42,7 @@ The roles we'll grant, from Google's docs and our Lesson 8 errors:
 | "`bigquery.tables.get` denied on table" | `roles/bigquery.dataViewer` (read tables) | the **dataset** `ga4_sample` only | **docs** |
 | catalog MCP: "Server returned an error response" | `roles/dataplex.catalogViewer` (read catalog entries) | the project | **guess**: the docs page for this server's roles wasn't readable; we test it |
 | (the catalog call bills the project via `x-goog-user-project`) | `roles/serviceusage.serviceUsageConsumer` | the project | **docs** recommend it for agent identities; **guess** that it's needed here |
+| catalog MCP `tools/call`: **403** (after Step 6b) | `roles/mcp.toolUser` (permission `mcp.tools.call`) | the project | **verified**: the catalog worked only after this role (Step 6c) |
 
 Google's docs also say: don't give agent identities `roles/aiplatform.user` or `roles/aiplatform.expressUser`.
 
@@ -56,13 +57,16 @@ gcloud projects get-iam-policy kc-okf-poc-261122 --format=json | grep -B2 -A4 pr
 
 ### Step 2. Put the agent's names in two shell variables
 
-Replace `ID` with your agent's number from Lesson 8:
+Set `ID` to your agent's number from Lesson 8 (the long number at the end of its resource name). Later commands use `$ID`, `$R` and `$P`, so you type the number only once:
 
 ```bash
-R=projects/kc-okf-poc-261122/locations/us-central1/reasoningEngines/ID
+ID=7105399555822190592
+R=projects/kc-okf-poc-261122/locations/us-central1/reasoningEngines/$ID
 P=$(uv run python scripts/runtime.py principal $R)
 echo $P
 ```
+
+Variables last only for this terminal tab: in a new tab, run these lines again. (We twice sent the literal word `ID` to Google: `adk deploy` answered `400 INVALID_ARGUMENT`, and `gcloud logging read` found nothing.)
 
 First add the `principal` command to **`scripts/runtime.py`** (the new file is in full below, in Part B's "files" section). It prints `principal://` + the agent's identity, the form IAM commands want (**verified**: `principal://agents.global.proj-<number>.system.id.goog/resources/aiplatform/projects/<number>/locations/us-central1/reasoningEngines/<id>`).
 
@@ -112,7 +116,7 @@ uv run python scripts/runtime.py ask $R "Use the Knowledge Catalog to tell me wh
 **What happened (verified):** `lookup_context` **still failed**, and the agent cleverly worked around it by reading the column from BigQuery's `INFORMATION_SCHEMA` (the Step 4 role allows that). The container log showed why:
 
 ```bash
-gcloud logging read 'resource.labels.reasoning_engine_id="ID" AND textPayload:"dataplex"' --project kc-okf-poc-261122 --freshness=30m --limit 10 --format='value(timestamp,textPayload)'
+gcloud logging read "resource.labels.reasoning_engine_id=\"$ID\" AND textPayload:\"dataplex\"" --project kc-okf-poc-261122 --freshness=30m --limit 10 --format='value(timestamp,textPayload)'
 ```
 
 ```
@@ -138,6 +142,29 @@ and change the catalog's connection to use it:
 ```
 
 The new **`scripts/stage_deploy.py`** (in full at the end of Part B) writes `CATALOG_MCP_URL=https://dataplex.mtls.googleapis.com/mcp` into the build's `.env` (the host exists, **verified**). The redeploy in Step 11 carries both this fix and the plugin, and Step 11 asks the catalog question again.
+
+### Step 6c. One more role: permission to call MCP tools (verified)
+
+After the redeploy, the log changed from **401 to 403** on `dataplex.mtls.googleapis.com`: the credentials were accepted now (Step 6b worked), but a permission was missing. `Dataplex Catalog Viewer` already includes `dataplex.projects.search` and `dataplex.entries.get` (**verified** with `gcloud iam roles describe`). The clue was in the log: `initialize` and `tools/list` returned **200**, only `tools/call` returned **403**. Calling a tool on a Google MCP server needs `mcp.tools.call`, in **`roles/mcp.toolUser`** (GA). Locally you never noticed, because you're the project Owner, which has every permission.
+
+```bash
+gcloud projects add-iam-policy-binding kc-okf-poc-261122 --member="$P" --role="roles/mcp.toolUser" --condition=None
+```
+
+**Wait a few minutes before testing.** Our first test, 32 seconds after the grant, still got 403; a few minutes later `search_entries` and `lookup_context` returned catalog text (**verified**). IAM changes take time to reach every Google server. To see when a role was granted, the admin audit log keeps every change:
+
+```bash
+gcloud logging read 'logName:"cloudaudit.googleapis.com%2Factivity" AND protoPayload.methodName="SetIamPolicy"' --project kc-okf-poc-261122 --freshness=2h --limit 10 --format='value(timestamp,protoPayload.serviceData.policyDelta.bindingDeltas)'
+```
+
+The whole chain, from Lesson 8's first catalog error to a working call:
+
+| What the log said | Meaning | Fix |
+|---|---|---|
+| "Server returned an error response" | no catalog role | `dataplex.catalogViewer`, `serviceUsageConsumer` (Step 6) |
+| **401** on `dataplex.googleapis.com` | credentials not accepted on the plain host | the mTLS host (Step 6b) |
+| **403** on `tools/call` | no permission to call MCP tools | `roles/mcp.toolUser` (Step 6c) |
+| still **403**, 32 s later | IAM not propagated yet | wait a few minutes |
 
 ### Step 7. See it in the console
 
@@ -288,10 +315,10 @@ The build must include `guardrails.py`, so update **`scripts/stage_deploy.py`** 
 ```bash
 uv run python scripts/stage_deploy.py
 uv run adk deploy agent_engine --project kc-okf-poc-261122 --region us-central1 \
-  --agent_engine_id ID --display_name ga4-guide --description "GA4 data guide (lesson 9)" build/ga4_guide
+  --agent_engine_id $ID --display_name ga4-guide --description "GA4 data guide (lesson 9)" build/ga4_guide
 ```
 
-`--agent_engine_id ID` **updates** the agent you already have instead of creating a new one (**verified** in `adk deploy --help`), so it keeps its identity and the roles from Part A (**guess**: the identity belongs to the resource, which stays the same).
+`--agent_engine_id $ID` **updates** the agent you already have instead of creating a new one (**verified** in `adk deploy --help`), so it keeps its identity and the roles from Part A (**guess**: the identity belongs to the resource, which stays the same).
 
 Ask the catalog question from Step 6 again:
 
@@ -299,15 +326,15 @@ Ask the catalog question from Step 6 again:
 uv run python scripts/runtime.py ask $R "Use the Knowledge Catalog to tell me what the event_date_dt column is."
 ```
 
-**Look for:** `lookup_context` returning text (the catalog page) instead of "Server returned an error response". If it still fails, read the log line again: a **403** now would mean a role is missing (the roles from Step 6), a **401** that the mTLS guess was wrong.
+**Look for:** `lookup_context` returning text (the catalog page) instead of "Server returned an error response". If it still fails, read the log line: a **401** means the mTLS host isn't in use, a **403** means a role is missing (Step 6c).
 
 Then read the plugin's log lines in Cloud Logging:
 
 ```bash
-gcloud logging read 'resource.labels.reasoning_engine_id="ID" AND textPayload:"tool call"' --project kc-okf-poc-261122 --freshness=30m --limit 20 --format='value(timestamp,textPayload)'
+gcloud logging read "resource.labels.reasoning_engine_id=\"$ID\" AND textPayload:\"tool call\"" --project kc-okf-poc-261122 --freshness=30m --limit 20 --format='value(timestamp,textPayload)'
 ```
 
-**Look for:** one `tool call:` line per tool the agent used. (A question that needs approval will stop at `WAITING` through `runtime.py`, because the script can't answer the approval. `adk web` and the console's Playground can.)
+**Look for:** one `tool call:` line per tool the agent used (**verified**: these lines come from `guardrails.py` inside the deployed container). When the catalog was still failing, the deployed plugin also logged `tool error 1/3`, `2/3`, `3/3` and then blocked the next call: in Lesson 8 the agent retried 8 times. (A question that needs approval will stop at `WAITING` through `runtime.py`, because the script can't answer the approval. `adk web` and the console's Playground can.)
 
 ### The files in full
 

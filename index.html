@@ -376,7 +376,7 @@ details.lesson li{margin:4px 0}
     <tr><td>0</td><td><strong>Map</strong></td><td>The whole stack and how the pieces connect (this page)</td><td><span class="badge done">done</span></td></tr>
     <tr><td>1</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/01-setup/README.md">Setup</a></strong> <span class="cost">☁</span></td><td>uv, gcloud profile, ADC, APIs, quotas</td><td><span class="badge done">done</span></td></tr>
     <tr><td>2</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/02-first-agent/README.md">First ADK agent</a></strong></td><td>Agent, Runner, Session, State, Events; the <code>adk web</code> dev UI; first traces in Langfuse</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>3</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">Tools + Google's MCP</a></strong></td><td>Function tools, toolsets, MCP client, Knowledge Catalog remote MCP, BigQuery tool</td><td><span class="badge done">done</span></td></tr>
     <tr><td>4</td><td><strong>A skill (local)</strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>5</td><td><strong>Your own MCP server</strong> <span class="cost">☁</span></td><td>FastMCP: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>6</td><td><strong>Evaluate: offline + simulated</strong></td><td><code>adk eval</code> on kc-okf's 15 questions; simulated multi-turn users</td><td><span class="badge planned">planned</span></td></tr>
@@ -446,7 +446,7 @@ details.lesson li{margin:4px 0}
   <li>Chatted with it in the terminal (<code>adk run</code>) and in the browser dev UI (<code>adk web</code>): Events, State, Trace and the agent graph.</li>
   <li>Opened the sessions file <code>.adk/session.db</code> with <code>sqlite3</code> and read every table.</li>
   <li>Wrote <code>scripts/runner_demo.py</code>: our own Runner with in-memory sessions. Turn 1 called <code>remember_analyst</code> and changed the <code>user:</code> keys; turn 2 made no tool call and refused to invent a number; the session had 6 events; a <strong>new</strong> session for the same user started with only <code>user:analyst_name</code> and <code>user:team</code>. State scoping, seen in our own code (<strong>verified</strong>).</li>
-  <li>Pointed the script at our own <strong>Langfuse</strong> (three <code>OTEL_*</code> lines in <code>.env</code> and two lines in the script). Two traces appeared with the spans <code>invoke_workflow → invoke_agent → generate_content → remember_analyst → generate_content</code>, token counts and cost. At first <strong>no prompt text</strong> appeared; two more <code>.env</code> lines (<code>OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</code>, <code>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY</code>) fixed it. On the <code>generate_content</code> rows we then saw the system prompt with an <em>empty</em> name before the tool ran and <em>Priya</em> after it (<strong>verified</strong>).</li>
+  <li>Pointed the script at our own <strong>Langfuse</strong> (three <code>OTEL_*</code> lines in <code>.env</code> plus a few lines in <code>agents/ga4_guide/__init__.py</code>; see lesson 3 for why). Two traces appeared with the spans <code>invoke_workflow → invoke_agent → generate_content → remember_analyst → generate_content</code>, token counts and cost. At first <strong>no prompt text</strong> appeared; two more <code>.env</code> lines (<code>OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</code>, <code>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY</code>) fixed it. On the <code>generate_content</code> rows we then saw the system prompt with an <em>empty</em> name before the tool ran and <em>Priya</em> after it (<strong>verified</strong>).</li>
 </ul>
 
 <h4>The big picture: one agent class, many hosts</h4>
@@ -571,7 +571,7 @@ details.lesson li{margin:4px 0}
 <div class="qa"><p class="q">Langfuse shows <code>LANGFUSE_*</code> variables, you gave me <code>OTEL_*</code> ones. What's the difference?</p>
 <p>Same keys, different carrier. <code>LANGFUSE_*</code> are read by Langfuse's own Python package (not installed). <code>OTEL_*</code> are the open OpenTelemetry settings that ADK already understands: <em>endpoint</em> = where to send spans, <em>headers</em> = the login (<code>Authorization: Basic base64(public:secret)</code>, so <strong>both</strong> keys), <em>service name</em> = a label. We used OTel, so nothing new was installed.</p></div>
 <div class="qa"><p class="q">Do we change <code>agent.py</code> for tracing?</p>
-<p>No. The agent doesn't know who watches it. ADK already creates a span per model and tool call; the <strong>host</strong> decides where they go. Our script calls <code>maybe_set_otel_providers()</code>; <code>adk web</code> does it itself; on Agent Runtime it goes to Cloud Trace (lesson 16).</p></div>
+<p>No. The agent doesn't know who watches it. ADK already creates a span per model and tool call; the <strong>host</strong> decides where they go. Tracing is switched on by the package's <code>__init__.py</code> (for <code>adk run</code> and scripts) and by <code>adk web</code> itself when the settings are in the shell; on Agent Runtime it goes to Cloud Trace (lesson 16). Start ADK through <code>scripts/adk.sh</code>.</p></div>
 <div class="qa"><p class="q">Langfuse only shows "invoke" names, and no prompt or reply. Is that right?</p>
 <p>Names: yes, mostly. ADK 2.x runs every agent as a graph workflow, so <code>invoke_workflow</code> and <code>invoke_agent</code> wrap the Gemini calls and the tool call, matching the events in the terminal. Text: at first it was missing, because ADK 2.15 sends message text as log events and we only export traces. Two settings fix it: <code>OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</code> and <code>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY</code>. Then click the <code>generate_content</code> row (not the top row) to see the prompt and the reply (<strong>verified</strong>). The top rows still show null.</p></div>
 <div class="qa"><p class="q">What does the model actually receive?</p>
@@ -583,7 +583,7 @@ details.lesson li{margin:4px 0}
 </details>
 
 <details class="lesson" open>
-<summary>Lesson 3 · Real tools: Knowledge Catalog MCP and BigQuery <span class="when">2026-11-25 → in progress</span></summary>
+<summary>Lesson 3 · Real tools: Knowledge Catalog MCP and BigQuery <span class="when">2026-11-25</span></summary>
 <h4>What we're doing</h4>
 <ul>
   <li>Give <code>ga4_guide</code> two toolsets: Google's <strong>hosted Knowledge Catalog MCP server</strong> (read the table's real schema) and ADK's <strong>BigQueryToolset</strong> (run read-only SQL). Then ask the same December question as in lesson 2 and compare.</li>
@@ -603,7 +603,27 @@ details.lesson li{margin:4px 0}
   <li><strong><code>tool_filter</code> is the cheapest guardrail:</strong> the agent never learns the hidden tools exist. Lessons 9 and 11 add guardrails in code and on the network.</li>
   <li><strong><code>header_provider</code></strong> adds a fresh token before every MCP call, so it never goes stale.</li>
 </ul>
-<p class="diagram-note">Results (what the agent actually did, the SQL it wrote, tokens and cost) will be added here when we've run it.</p>
+<h4>Results (verified)</h4>
+<ul>
+  <li>The December question: <code>search_entries</code> → <code>lookup_context</code> → <code>execute_sql</code> → <strong>2,434 purchases</strong>, SQL filtered on <code>event_date_dt</code>. An independent <code>bq query</code> gave the same 2,434. In lesson 2 the same question got "I can't access the data" and a wrong <code>_TABLE_SUFFIX</code> guess.</li>
+  <li><strong>The order is search → look up → run:</strong> <code>search_entries</code> finds the table's catalog address (it returned the table and its dataset), <code>lookup_context</code> reads about it (about 35,500 characters of YAML), <code>execute_sql</code> runs the query. The instruction asked for that order; nothing forces it.</li>
+  <li><strong>The cost of grounding:</strong> 5 model calls, 30.8 s, about $0.10 per question (Langfuse's estimate). The big catalog result stays in the conversation, so two model calls carried 31,000+ input tokens, and even a later "Hey" cost 32,767.</li>
+  <li><strong>The guardrail that costs nothing:</strong> asked to delete the catalog entry, the agent said it can't; it has no such tool. No tool was called.</li>
+  <li><strong>The catalog already carries business rules:</strong> the table's context includes the rule "report financial figures with the <code>_in_usd</code> columns" (MSC-417), and the agent quoted it.</li>
+  <li><strong>Tracing needs care:</strong> <code>adk web</code> reads the tracing settings at startup from the shell, and <code>adk run</code> has no tracing code. Fix: setup in <code>agents/ga4_guide/__init__.py</code> plus <code>scripts/adk.sh</code>, which loads <code>.env</code> first. Always start ADK through it.</li>
+</ul>
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Is the function tool different from a toolset? Why is one a "server"?</p>
+<p>All three look the same to the model: a tool with a name, a description and inputs. The difference is where the code runs. <code>remember_analyst</code> is your own function. <code>BigQueryToolset</code> is a bundle of ready-made Python functions that run in your process and then call the BigQuery API. <code>McpToolset</code> is only the <strong>client</strong>: you give it an address, it fetches the menu from Google's MCP <strong>server</strong>, and the server runs the tool. Only that one crosses the network.</p></div>
+<div class="qa"><p class="q">We use 3 of the 15 tools. Do we copy them?</p>
+<p>No. Nothing is copied or converted; the tools keep running at Google. <code>tool_filter</code> only decides which menu items the agent may see. The hidden ones (<code>delete_entry</code>, <code>set_entry_group_iam_policy</code>, …) can't be ordered by an agent that doesn't know they exist.</p></div>
+<div class="qa"><p class="q">Why isn't BigQuery also an MCP server?</p>
+<p>It is: Google hosts one at <code>bigquery.googleapis.com/mcp</code> (9 tools, verified). ADK's library toolset came first or serves ADK only, and it has extras (<code>forecast</code>, <code>ask_data_insights</code>). We use the library here and switch to the hosted server in lesson 11, because Agent Gateway can govern MCP calls but not a function inside your own process (<strong>docs</strong>).</p></div>
+<div class="qa"><p class="q">Why was the Langfuse row for <code>MCP send tools/list</code> empty?</p>
+<p>It's protocol plumbing (asking the server for its menu). The prompt and results are on the <code>generate_content</code> and tool rows.</p></div>
+<div class="qa"><p class="q">Is <code>search_entries</code> the call that lists all tables?</p>
+<p>No. The agent already knew the table name from its instruction, so it searched for that one table to get its catalog address. <code>lookup_context</code> then returned the details. With many similar tables the agent would have to choose among the results; our instruction doesn't tell it to ask the user.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/03-tools-and-mcp/README.md">lessons/03-tools-and-mcp</a> · evidence: <code>results/03-tools-and-mcp.md</code>.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

@@ -13,7 +13,6 @@ sys.path.insert(0, str(ROOT / "agents"))
 from google.adk.runners import Runner  # noqa: E402
 from google.adk.sessions import InMemorySessionService  # noqa: E402
 from google.genai import types  # noqa: E402
-from google.adk.telemetry.setup import maybe_set_otel_providers  # noqa: E402
 
 from ga4_guide.agent import root_agent  # noqa: E402
 
@@ -36,7 +35,7 @@ async def ask(runner: Runner, session_id: str, text: str) -> None:
 
 
 async def main() -> None:
-    maybe_set_otel_providers()  # sends spans to the address in .env, if set
+    # Tracing to Langfuse is switched on by agents/ga4_guide/__init__.py when the agent is imported.
     sessions = InMemorySessionService()
     runner = Runner(agent=root_agent, app_name=APP, session_service=sessions)
 

@@ -20,3 +20,7 @@ This is a **teaching** POC. The human is learning Google's agent stack (ADK, Age
 ## Learning journal
 
 `index.html` has a "Learning journal" section. After each lesson, and during a lesson when something worth keeping comes up, add or extend that lesson's `<details class="lesson">` block: what we did, key ideas, verified findings, and the learner's questions with plain-language answers (`<div class="qa">`). Use SVG diagrams when a picture helps. Keep the newest lesson open.
+
+## Starting ADK
+
+Always start `adk` through `scripts/adk.sh` (`./scripts/adk.sh web agents`, `./scripts/adk.sh run agents/ga4_guide`). It loads `agents/ga4_guide/.env` first so traces reach Langfuse; `adk web` reads those settings only at startup, and `adk run` gets its tracing from `agents/ga4_guide/__init__.py`. A plain `uv run adk web` sends nothing.

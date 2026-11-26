@@ -204,8 +204,10 @@ If a tool fails, say what failed. Never invent figures.""",
 ## Step 4. Chat with it
 
 ```bash
-uv run adk web agents
+./scripts/adk.sh web agents
 ```
+
+(Always start through `scripts/adk.sh`, from lesson 2: it loads the Langfuse settings. A plain `uv run adk web agents` sends **no** traces.)
 
 Open the page (same SSH tunnel as lesson 2 if you're on another computer). Pick **ga4_guide**, start a **new session**, and ask:
 
@@ -225,7 +227,7 @@ Try two more:
 
 ## Step 5. See it in Langfuse
 
-With the `.env` lines from lesson 2, the traces are already going there. Look at the newest trace and click the rows:
+As long as you started through `scripts/adk.sh`, the traces are going there. Open **Observations**, or the newest trace, and click the rows:
 - The **MCP calls** show as TOOL spans (`lookup_context`, ...). Click one: its **Input** is what the model asked for, its **Output** is what Google's server returned (the schema, as YAML).
 - The `execute_sql` span shows the exact SQL and the rows that came back.
 - The model-call rows show **how the prompt grew**: the tool results are now part of the next call's input, and the token count jumps.
@@ -248,10 +250,10 @@ This reads about 34 MB. **Look for:** the same number the agent gave. If they di
 git status --short
 ```
 
-**Look for:** `agents/ga4_guide/agent.py` modified, `scripts/list_mcp_tools.py` new, and **no** `.env`.
+**Look for:** `agent.py` and `__init__.py` modified, `scripts/list_mcp_tools.py` and `scripts/adk.sh` new, and **no** `.env`.
 
 ```bash
-git add agents/ga4_guide/agent.py scripts/list_mcp_tools.py && git commit -m "Lesson 3: Knowledge Catalog MCP + BigQuery tools"
+git add agents/ga4_guide/agent.py agents/ga4_guide/__init__.py scripts/list_mcp_tools.py scripts/adk.sh scripts/runner_demo.py && git commit -m "Lesson 3: Knowledge Catalog MCP + BigQuery tools"
 ```
 
 ---

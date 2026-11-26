@@ -330,17 +330,23 @@ OTEL_SERVICE_NAME=ga4_guide
 - We set only the **TRACES** address, not the general `OTEL_EXPORTER_OTLP_ENDPOINT`, because Langfuse takes traces, not metrics or logs (**docs**).
 - `%20` is a space. The OTel spec wants it written like that in this variable.
 
-**4. Switch tracing on in the script.** In `scripts/runner_demo.py`, add this import next to the other ADK imports:
+**4. Switch tracing on in the agent package.** Put this in **`agents/ga4_guide/__init__.py`** (replace what's there). It runs whenever the agent is imported, by `adk run`, `adk web` or your script, so no command needs its own switch:
 
 ```python
-from google.adk.telemetry.setup import maybe_set_otel_providers  # noqa: E402
+"""ga4_guide package. Importing it switches on tracing when the OTEL_* settings are present."""
+
+from google.adk.telemetry.setup import maybe_set_otel_providers
+from opentelemetry import trace
+
+# `adk web` installs its own exporters at startup; `adk run` and plain scripts don't.
+# So only act if nobody has installed a tracer provider yet.
+if isinstance(trace.get_tracer_provider(), trace.ProxyTracerProvider):
+    maybe_set_otel_providers()
+
+from . import agent as agent  # noqa: E402
 ```
 
-and make this the first line inside `main()`:
-
-```python
-    maybe_set_otel_providers()  # sends spans to the OTEL_EXPORTER_OTLP_* address in .env, if set
-```
+(An earlier version of this lesson put two lines in `runner_demo.py` instead. That only covered the script: **`adk run` has no tracing code at all** (**verified**: no telemetry setup in ADK's `cli.py`), so it needs this. If your script still has `maybe_set_otel_providers()` in `main()`, delete that line and its import: the package does it now.)
 
 **5. Run it again:**
 
@@ -374,11 +380,28 @@ OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_ONLY
 - The top rows (`invoke_workflow`, `invoke_agent`) and the trace's own Input/Output stay `null`. The content lives on the model and tool rows.
 - Compare with the `langfuse` SDK way (three `LANGFUSE_*` variables plus an import). It captures text by itself. Ours needs no new package but needs these two settings.
 
-**`adk web` too:** `adk web` sets up the same exporter by itself when the variables are set (**verified** in `google/adk/cli/api_server.py`). Load the `.env` into the shell first, so they are there when it starts:
+**`adk web` needs the settings before it starts (verified).** It decides where traces go **at startup**, from the shell's environment. It reads `agents/ga4_guide/.env` only later, for the agent. Started plainly, `adk web` sends nothing. Our fix is a small wrapper that loads `.env` first. Create **`scripts/adk.sh`**:
 
 ```bash
-set -a && source agents/ga4_guide/.env && set +a && uv run adk web agents
+#!/usr/bin/env bash
+# Run any `adk` command with the agent's .env loaded first, so traces always go to Langfuse.
+#   ./scripts/adk.sh web agents
+#   ./scripts/adk.sh run agents/ga4_guide
+cd "$(dirname "$0")/.." || exit 1
+export CLOUDSDK_ACTIVE_CONFIG_NAME=kc-okf
+set -a
+source agents/ga4_guide/.env   # OTEL_* lines (and the Google Cloud settings) become real env vars
+set +a
+exec uv run adk "$@"
 ```
+
+```bash
+chmod +x scripts/adk.sh
+```
+
+From now on **start every ADK command through it**: `./scripts/adk.sh web agents` and `./scripts/adk.sh run agents/ga4_guide`. (`set -a` makes every variable the file defines visible to the program that follows.)
+
+Tested 2026-11-25: `adk run` through the wrapper produced a trace in Langfuse; `adk web` through the wrapper had the `OTEL_*` variables and its requests arrived as traces.
 
 > Once message content is switched on, prompts and replies leave your process. That's fine for a private Langfuse; for a shared or production backend, think about whether they may contain personal data.
 

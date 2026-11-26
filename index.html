@@ -412,7 +412,7 @@ details.lesson .basics ul,details.lesson .remember ul{margin:6px 0 4px}
     <tr><td>4</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/04-skill/README.md">A skill (local)</a></strong></td><td><code>SKILL.md</code>, <code>SkillToolset</code>, progressive disclosure; OKF's <code>okf-consume</code></td><td><span class="badge done">done</span></td></tr>
     <tr><td>5</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/05-own-mcp-server/README.md">Your own MCP server</a></strong> <span class="cost">☁ Part B</span></td><td><code>MCPServer</code>: tools, resources, prompts; stdio vs Streamable HTTP; Cloud Run with invoker IAM (Part B, only after we agree)</td><td><span class="badge done">done</span></td></tr>
     <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>7</td><td><strong>Multi-agent in one app</strong></td><td>Orchestrator + sub-agents; transfer vs <code>AgentTool</code> vs Sequential/Parallel/Loop vs graph <code>Workflow</code>; single vs multi-agent score</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge progress">in progress</span></td></tr>
     <tr><td>8</td><td><strong>Deploy to Agent Runtime</strong> <span class="cost">☁</span></td><td>Packaging, staging bucket, Agent Identity, managed sessions; the deliberate first 403</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>9</td><td><strong>Identity, IAM, guardrails in code</strong> <span class="cost">☁</span></td><td>Principals, SPIFFE, least privilege; ADK plugin that logs tool calls and asks before <code>modify_entry</code></td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>10</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry metadata; skill loaded from Skill Registry; MCP server used from 3 clients; optional Claude Code plugin</td><td><span class="badge planned">planned</span></td></tr>
@@ -937,6 +937,27 @@ Knowledge Catalog
 <li>A judge model grades free text; rubrics make its job concrete.</li>
 <li>When a simulated run fails, read the conversation: the judge or the simulator can be the problem.</li>
 </ul></div>
+</details>
+<details class="lesson" id="l7">
+<summary><span class="num">Lesson 7</span><span class="ttl">Multi-agent</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>A <strong>team</strong> of small agents instead of one big one. Two ways: <strong>the model decides</strong> (a front desk <em>transfers</em> the conversation to a specialist, or calls another agent <em>as a tool</em>), or <strong>the code decides</strong> (a <code>Workflow</code>: a graph of steps joined by edges, with routes like "approved" and "fix"). Steps pass work through session state (<code>output_key</code> and <code>{placeholder}</code>).</p>
+</div>
+<h4>What we're doing</h4>
+<ul>
+  <li><code>ga4_team</code>: front desk → <code>policy_expert</code> or <code>data_analyst</code>; the analyst calls <code>sql_reviewer</code> as a tool before running SQL.</li>
+  <li><code>ga4_flow</code>: <code>sql_writer</code> → <code>sql_reviewer</code> → <code>check_review</code> (code) → back to the writer on "fix" (at most 3 tries) or on to <code>answer_writer</code>.</li>
+  <li>Score both with lesson 6's eval set. Lesson text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">lessons/07-multi-agent</a>.</li>
+</ul>
+<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+<ul>
+  <li><strong><code>SequentialAgent</code>, <code>ParallelAgent</code> and <code>LoopAgent</code> are deprecated</strong> in ADK 2.15 "in favor of Workflow", and a Workflow "cannot yet be used as an LlmAgent sub-agent".</li>
+  <li><strong>Eval set, one run each:</strong> ga4_guide 4 of 5, <strong>ga4_team 5 of 5</strong>, ga4_flow 3 of 5. The reviewer fixed the engaged-sessions mistake (106,301). ga4_flow's last step didn't know <em>why</em> cities were refused: in a pipeline each step knows only what you pass it.</li>
+  <li><strong>Small steps, fewer tokens:</strong> ga4_flow used 18K to 37K tokens per case vs ga4_guide's 45K to 133K, and cost the least (about $0.47 vs $0.52 and $0.64 for ga4_team).</li>
+  <li>My first reviewer approved the wrong query; it worked only after explicit checks were added. A reviewer is only as good as its checklist.</li>
+  <li>Transfers have a hidden cost: ADK warns that each transfer resends the whole prompt uncached (lesson 23).</li>
+</ul>
+<p class="diagram-note">Results will be added when you've run it.</p>
 </details>
 
 <h2 id="glossary">Glossary</h2>

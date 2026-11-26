@@ -109,7 +109,35 @@ Then ask something that needs the catalog:
 uv run python scripts/runtime.py ask $R "Use the Knowledge Catalog to tell me what the event_date_dt column is."
 ```
 
-**Look for:** `lookup_context` or `search_entries` returning text instead of "Server returned an error response". If it still fails, send me the output: we'll find the missing permission from the error, which is how least privilege usually works in practice.
+**What happened (verified):** `lookup_context` **still failed**, and the agent cleverly worked around it by reading the column from BigQuery's `INFORMATION_SCHEMA` (the Step 4 role allows that). The container log showed why:
+
+```bash
+gcloud logging read 'resource.labels.reasoning_engine_id="ID" AND textPayload:"dataplex"' --project kc-okf-poc-261122 --freshness=30m --limit 10 --format='value(timestamp,textPayload)'
+```
+
+```
+HTTP Request: POST https://dataplex.googleapis.com/mcp "HTTP/1.1 401 Unauthorized"
+```
+
+**401, not 403.** A 403 means "I know you, but you're not allowed" (a missing role). A 401 means "I don't accept your credentials". So the roles weren't the problem. The log also says `Successfully configured mTLS`, and BigQuery's calls go to `bigquery.mtls.googleapis.com`. Our explanation (**guess**, but it fits every log line): inside Agent Runtime the agent's token is tied to its client certificate, so Google accepts it only on the **mTLS hosts** (`*.mtls.googleapis.com`). BigQuery's client switches to that host by itself; ADK's MCP client doesn't switch our catalog URL (**verified** in ADK's code: no rewrite for `McpToolset`).
+
+### Step 6b. Point the deployed agent at the catalog's mTLS host
+
+In **`agents/ga4_guide/agent.py`**, add `import os` at the top, add this line above `_creds, _ = google.auth.default(...)`:
+
+```python
+# Lesson 9: deployed, the agent's token only works on Google's mTLS hosts (*.mtls.googleapis.com);
+# the plain host answered 401. The build's .env sets the mTLS URL; locally we use the plain one.
+CATALOG_MCP_URL = os.environ.get("CATALOG_MCP_URL", "https://dataplex.googleapis.com/mcp")
+```
+
+and change the catalog's connection to use it:
+
+```python
+    connection_params=StreamableHTTPConnectionParams(url=CATALOG_MCP_URL),
+```
+
+The new **`scripts/stage_deploy.py`** (in full at the end of Part B) writes `CATALOG_MCP_URL=https://dataplex.mtls.googleapis.com/mcp` into the build's `.env` (the host exists, **verified**). The redeploy in Step 11 carries both this fix and the plugin, and Step 11 asks the catalog question again.
 
 ### Step 7. See it in the console
 
@@ -265,7 +293,15 @@ uv run adk deploy agent_engine --project kc-okf-poc-261122 --region us-central1 
 
 `--agent_engine_id ID` **updates** the agent you already have instead of creating a new one (**verified** in `adk deploy --help`), so it keeps its identity and the roles from Part A (**guess**: the identity belongs to the resource, which stays the same).
 
-Ask it once more (Step 5's question), then read the plugin's log lines in Cloud Logging:
+Ask the catalog question from Step 6 again:
+
+```bash
+uv run python scripts/runtime.py ask $R "Use the Knowledge Catalog to tell me what the event_date_dt column is."
+```
+
+**Look for:** `lookup_context` returning text (the catalog page) instead of "Server returned an error response". If it still fails, read the log line again: a **403** now would mean a role is missing (the roles from Step 6), a **401** that the mTLS guess was wrong.
+
+Then read the plugin's log lines in Cloud Logging:
 
 ```bash
 gcloud logging read 'resource.labels.reasoning_engine_id="ID" AND textPayload:"tool call"' --project kc-okf-poc-261122 --freshness=30m --limit 20 --format='value(timestamp,textPayload)'
@@ -310,6 +346,8 @@ shutil.copytree(ROOT / "skills" / "ga4-context", OUT / "skills" / "ga4-context")
     "GOOGLE_GENAI_USE_ENTERPRISE=TRUE\n"
     "GOOGLE_CLOUD_PROJECT=kc-okf-poc-261122\n"
     "GOOGLE_CLOUD_LOCATION=us-central1\n"
+    # Lesson 9: in Agent Runtime the agent's token is accepted only on the mTLS host (the plain one gave 401).
+    "CATALOG_MCP_URL=https://dataplex.mtls.googleapis.com/mcp\n"
 )
 
 # Without this file the cloud image gets only google-adk[a2a], which has no `mcp` package, and the
@@ -405,7 +443,7 @@ if __name__ == "__main__":
 
 ```bash
 git status --short
-git add agents/ga4_guide/guardrails.py agents/ga4_guide/agent.py scripts/stage_deploy.py scripts/runtime.py && git commit -m "Lesson 9: least-privilege roles for the agent identity, guardrails plugin"
+git add agents/ga4_guide/guardrails.py agents/ga4_guide/agent.py scripts/stage_deploy.py scripts/runtime.py && git commit -m "Lesson 9: least-privilege roles for the agent identity, mTLS catalog URL, guardrails plugin"
 ```
 
 ## Check yourself

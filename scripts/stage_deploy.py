@@ -3,7 +3,7 @@
   uv run python scripts/stage_deploy.py
 
 It creates build/ga4_guide/ with:
-  agent.py, __init__.py          copied from agents/ga4_guide
+  *.py                           copied from agents/ga4_guide (agent.py, __init__.py, guardrails.py)
   skills/ga4-context/            the skill, copied INSIDE the agent folder (only this folder is uploaded)
   .env                           ONLY the Google Cloud settings: no Langfuse key, no OTEL lines
   requirements.txt               the packages the cloud image must install (ADK with MCP and BigQuery)
@@ -20,8 +20,8 @@ OUT = ROOT / "build" / "ga4_guide"
 
 shutil.rmtree(OUT, ignore_errors=True)
 OUT.mkdir(parents=True)
-for name in ("agent.py", "__init__.py"):
-    shutil.copy2(SRC / name, OUT / name)
+for source in SRC.glob("*.py"):  # agent.py, __init__.py, guardrails.py (lesson 9), ...
+    shutil.copy2(source, OUT / source.name)
 shutil.copytree(ROOT / "skills" / "ga4-context", OUT / "skills" / "ga4-context")
 
 # adk deploy uploads EVERY value in the agent folder's .env as an environment variable,
@@ -30,6 +30,8 @@ shutil.copytree(ROOT / "skills" / "ga4-context", OUT / "skills" / "ga4-context")
     "GOOGLE_GENAI_USE_ENTERPRISE=TRUE\n"
     "GOOGLE_CLOUD_PROJECT=kc-okf-poc-261122\n"
     "GOOGLE_CLOUD_LOCATION=us-central1\n"
+    # Lesson 9: in Agent Runtime the agent's token is accepted only on the mTLS host (the plain one gave 401).
+    "CATALOG_MCP_URL=https://dataplex.mtls.googleapis.com/mcp\n"
 )
 
 # Without this file the cloud image gets only google-adk[a2a], which has no `mcp` package, and the

@@ -420,7 +420,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>6</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/06-evaluate/README.md">Evaluate: offline + simulated</a></strong></td><td><code>adk eval</code> on 5 of kc-okf's questions (trajectory, reference and rubric metrics, Gemini as judge); a simulated <code>NOVICE</code> user</td><td><span class="badge done">done</span></td></tr>
     <tr><td>7</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/07-multi-agent/README.md">Multi-agent in one app</a></strong></td><td><code>ga4_team</code> (transfer + <code>AgentTool</code> reviewer) and <code>ga4_flow</code> (a <code>Workflow</code> graph with a review loop; Sequential/Loop agents are deprecated); scored with lesson 6's eval set</td><td><span class="badge done">done</span></td></tr>
     <tr><td>8</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">Deploy to Agent Runtime</a></strong> <span class="cost">☁</span></td><td><code>adk deploy agent_engine</code> of a clean build copy (skill inside, no Langfuse key), Agent Identity, scale to zero; the deliberate first 403</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>9</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/09-identity-and-guardrails/README.md">Identity, IAM, guardrails in code</a></strong> <span class="cost">☁</span></td><td>Least-privilege roles for the agent principal (one 403 at a time); a <code>GuardrailsPlugin</code> that logs tool calls, blocks write and city-level SQL, asks before a full-table scan, and stops retry loops</td><td><span class="badge progress">in progress</span></td></tr>
+    <tr><td>9</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/09-identity-and-guardrails/README.md">Identity, IAM, guardrails in code</a></strong> <span class="cost">☁</span></td><td>Least-privilege roles for the agent principal (one 403 at a time); a <code>GuardrailsPlugin</code> that logs tool calls, blocks write and city-level SQL, asks before a full-table scan, and stops retry loops</td><td><span class="badge done">done</span></td></tr>
     <tr><td>10</td><td><strong>Registry: agents, MCP servers, skills</strong> <span class="cost">☁</span></td><td>Registry metadata; skill loaded from Skill Registry; MCP server used from 3 clients; optional Claude Code plugin</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>11</td><td><strong>Agent Gateway + governance</strong> <span class="cost">☁</span></td><td>Egress policy per principal; block <code>modify_entry</code> on the network; ENFORCED; Model Armor; semantic governance</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>12</td><td><strong>A2A between agents</strong> <span class="cost">☁</span></td><td>A separately deployed data policy agent with its own identity; found in the Registry and called over A2A through the Gateway</td><td><span class="badge planned">planned</span></td></tr>
@@ -1124,27 +1124,87 @@ agents/ga4_guide/.env (Langfuse key)      ✗      build/ga4_guide/.env  (3 GOOG
 </ul></div>
 </details>
 <details class="lesson" id="l9">
-<summary><span class="num">Lesson 9</span><span class="ttl">Identity, IAM and guardrails in code</span><span class="when">2026-11-26 → in progress</span><span class="badge progress">in progress</span></summary>
+<summary><span class="num">Lesson 9</span><span class="ttl">Identity, IAM and guardrails in code</span><span class="when">2026-11-26</span><span class="badge done">done</span></summary>
 <div class="basics"><h4>The basics</h4>
-<p>Two layers of control. <strong>IAM</strong> decides what the agent's principal <em>can reach</em>: we grant only the roles it needs, on the smallest scope (least privilege). A <strong>plugin</strong> decides what it <em>may do</em> inside that, on every tool call, whatever the model decides: it can log, block, or pause for a human (<strong>tool confirmation</strong>). Lesson 11 adds a third layer on the network.</p>
+<p>Every call goes through two checks: <strong>authentication</strong> ("is this ID card real?", fails with <strong>401</strong>) and <strong>authorization</strong> ("does this ID have the role?", fails with <strong>403</strong>). <strong>IAM</strong> decides what the agent's principal can reach; we granted only what it needs, on the smallest scope (least privilege). A <strong>plugin</strong> decides what the agent may do inside that, on every tool call, whatever the model decides: log, block, or pause for a human (<strong>tool confirmation</strong>).</p>
 </div>
 <pre class="diagram">model decides a tool call
    │
-   ▼  GuardrailsPlugin.before_tool_callback   (code: log / BLOCK / ask a human)
+   ▼  GuardrailsPlugin.before_tool_callback   code: log / BLOCK / ask a human
    │
-   ▼  the tool calls BigQuery as the agent's principal
+   ▼  the tool calls Google as the agent's principal (over mTLS)
    │
-   ▼  IAM: does the principal have the role?   (403 if not)</pre>
-<h4>Facts checked before the lesson (verified 2026-11-26)</h4>
+   ▼  1. authentication: token + certificate accepted?   401 if not
+   ▼  2. authorization:  does the principal have the role? 403 if not</pre>
+
+<h4>Part A: the roles the agent has now (verified)</h4>
+<div class="table-wrap"><table>
+<tr><th>Scope</th><th>Role</th><th>Lets it</th></tr>
+<tr><td>all agents (<code>principalSet</code>)</td><td><code>aiplatform.agentDefaultAccess</code></td><td>Gemini, sessions (added by Google)</td></tr>
+<tr><td>project</td><td><code>bigquery.jobUser</code></td><td>start query jobs</td></tr>
+<tr><td>dataset <code>ga4_sample</code> only</td><td><code>bigquery.dataViewer</code></td><td>read that dataset's tables</td></tr>
+<tr><td>project</td><td><code>dataplex.catalogViewer</code></td><td>search and read catalog entries</td></tr>
+<tr><td>project</td><td><code>serviceusage.serviceUsageConsumer</code></td><td>bill API calls to the project</td></tr>
+<tr><td>project</td><td><code>mcp.toolUser</code></td><td>call tools on Google's MCP servers</td></tr>
+</table></div>
 <ul>
-  <li>Today the only agent binding in the project is <code>roles/aiplatform.agentDefaultAccess</code> for a <code>principalSet</code> (every agent in the project): that's why Gemini worked in lesson 8 and nothing else did.</li>
-  <li>Plugin tests: write SQL and <code>geo.city</code> queries are blocked; a query without <code>event_date_dt</code> pauses for approval; after 3 failed tool calls the 4th is blocked.</li>
-  <li>Approval flow, real run: the agent wrote a full-table count, the plugin paused it (<code>adk_request_confirmation</code>), approval let it run: 4,295,584 rows.</li>
-  <li>ADK's loader looks for <code>app</code> first, then <code>root_agent</code>, so wrapping the agent in an <code>App</code> with plugins works in <code>adk web</code> and <code>adk deploy</code>.</li>
-  <li><code>runtime.py principal</code> prints the IAM member string; the resource name works with the project ID as well as the number.</li>
-  <li>Docs: <code>roles/bigquery.jobUser</code> only on projects; <code>roles/bigquery.dataViewer</code> on the dataset; don't give agents <code>roles/aiplatform.user</code>. Not verified yet: the catalog MCP role, and whether a dataset <code>GRANT</code> accepts a <code>principal://</code> member.</li>
+  <li><strong>BigQuery:</strong> after <code>jobUser</code> and the dataset grant, lesson 8's 403 question answered <strong>$160,555</strong>. The dataset <code>GRANT</code> accepts a <code>principal://</code> member (<code>--project_id</code> matters).</li>
+  <li><strong>Job User vs Data Viewer:</strong> a library card (may use the reading room) vs access to one shelf (may open these books). You need both.</li>
+  <li><strong><code>principal</code> vs <code>principalSet</code>:</strong> one agent vs every agent in the project.</li>
 </ul>
-<p class="diagram-note">Results will be added when you've run it.</p>
+
+<h4>The catalog: four fixes, found by reading the container log</h4>
+<div class="table-wrap"><table>
+<tr><th>What the log said</th><th>Meaning</th><th>Fix</th></tr>
+<tr><td>"Server returned an error response"</td><td>no catalog role</td><td><code>dataplex.catalogViewer</code>, <code>serviceUsageConsumer</code></td></tr>
+<tr><td><strong>401</strong> on <code>dataplex.googleapis.com</code></td><td>credentials not accepted on the plain door</td><td>use <code>dataplex.mtls.googleapis.com</code></td></tr>
+<tr><td><strong>403</strong> on <code>tools/call</code> only</td><td>no permission to call MCP tools</td><td><code>roles/mcp.toolUser</code></td></tr>
+<tr><td>still 403, 32 s after the grant</td><td>IAM not propagated yet</td><td>wait a few minutes</td></tr>
+</table></div>
+<pre class="diagram">Locally:   your login (normal ID card)               ──► any door works
+Deployed:  agent token tied to its client certificate ──► only the mTLS door:
+           BigQuery's library picks bigquery.mtls.googleapis.com by itself   -&gt; works
+           our catalog URL was the plain door, dataplex.googleapis.com       -&gt; 401
+           fix: CATALOG_MCP_URL=https://dataplex.mtls.googleapis.com/mcp in the build's .env</pre>
+<p>The mTLS explanation is a <strong>guess</strong> that fits every log line; that the fix works is <strong>verified</strong>. <code>mcp.toolUser</code> never mattered locally because you're the project Owner.</p>
+
+<h4>Part B: the guardrails plugin (verified)</h4>
+<div class="table-wrap"><table>
+<tr><th>Rule</th><th>What we saw</th></tr>
+<tr><td>Log every tool call</td><td><code>tool call: ...</code> lines locally and in Cloud Logging from the deployed container</td></tr>
+<tr><td>Ask before a query without <code>event_date_dt</code></td><td><code>adk web</code>: <code>adk_request_confirmation</code> → <strong>Approved</strong> → 4,295,584 rows</td></tr>
+<tr><td>Block write SQL and <code>geo.city</code></td><td>blocked in tests; the city question in <code>adk web</code> was already refused by the skill (regions instead)</td></tr>
+<tr><td>Stop after 3 failed calls</td><td>in the cloud: <code>tool error 1/3, 2/3, 3/3</code>, then <code>BLOCKED</code> (lesson 8's agent retried 8 times)</td></tr>
+</table></div>
+<pre class="code"><code>class GuardrailsPlugin(BasePlugin):
+    async def before_tool_callback(self, *, tool, tool_args, tool_context):
+        log.info("tool call: %s %s", tool.name, tool_args)
+        ...                                   # return None = run it; return a dict = skip it,
+        return {"status": "BLOCKED", ...}     # and the model gets our dict as the result
+
+app = App(name="ga4_guide", root_agent=root_agent, plugins=[GuardrailsPlugin()])</code></pre>
+<p>Skill = advice the model usually follows. IAM = what it can reach. Plugin = rules in code it can't skip. Lesson 11 adds the network layer.</p>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Is an ADK plugin like a Claude Code plugin?</p>
+<p>No. A Claude Code or VS Code plugin is a package you install (commands, skills, MCP connectors). An ADK plugin is code that runs around the agent's work, like .NET middleware.</p></div>
+<div class="qa"><p class="q">Callback, plugin, tool confirmation?</p>
+<p>Callbacks are hooks ADK calls at fixed moments (before or after an agent, model or tool). Set on one agent, it's a callback; registered on the <code>App</code>, it's a plugin and runs for every agent. Tool confirmation is one thing a hook can do: pause the call until a human approves or rejects.</p></div>
+<div class="qa"><p class="q">Why did BigQuery work without mTLS setup but the catalog didn't?</p>
+<p>Both use mTLS. BigQuery's library chooses the mTLS door itself; the catalog's address was one we typed, the plain door. The roles fixed authorization for both; the mTLS URL fixed authentication for the catalog.</p></div>
+<div class="qa"><p class="q">What does <code>runtime.py</code> do?</p>
+<p>It talks to the already-deployed agent: <code>info</code>, <code>principal</code> (the IAM member string), <code>ask</code> (invoke it), <code>delete</code>. Deploying is <code>adk deploy</code>'s job.</p></div>
+<div class="qa"><p class="q">What does GA mean?</p>
+<p>General Availability: stable and supported, as opposed to Preview.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/09-identity-and-guardrails/README.md">lessons/09-identity-and-guardrails</a> · evidence: <code>results/09-identity-and-guardrails.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>401 = your credentials aren't accepted; 403 = you're known but not allowed.</li>
+<li>Grant one role at a time, read the error, grant the next: that's how least privilege works in practice.</li>
+<li>IAM changes take a few minutes; the admin audit log shows when each one happened.</li>
+<li>Deployed agents call Google's mTLS hosts; libraries usually switch for you, hand-typed URLs don't.</li>
+<li>A plugin's <code>before_tool_callback</code> can log, block, or ask a human, and the model can't skip it.</li>
+</ul></div>
 </details>
 
 <h2 id="glossary">Glossary</h2>

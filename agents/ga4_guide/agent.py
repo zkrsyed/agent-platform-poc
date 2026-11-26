@@ -4,10 +4,12 @@ Lesson 3 added Knowledge Catalog (MCP) and BigQuery. Now the business rules also
 a skill, loaded only when needed, and the catalog is used only for what the skill lacks.
 """
 
+import os
 from pathlib import Path
 
 import google.auth
 from google.adk.agents import Agent
+from google.adk.apps import App
 from google.adk.models import Gemini
 from google.adk.integrations.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.integrations.bigquery.config import BigQueryToolConfig, WriteMode
@@ -16,6 +18,8 @@ from google.adk.tools import ToolContext
 from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 from google.adk.tools.skill_toolset import SkillToolset  # NEW
 from google.auth.transport.requests import Request
+
+from .guardrails import GuardrailsPlugin  # lesson 9
 
 
 PROJECT = "kc-okf-poc-261122"
@@ -29,6 +33,10 @@ SKILL_DIR = next(
     d for d in (_HERE / "skills" / "ga4-context", _HERE.parents[1] / "skills" / "ga4-context") if d.is_dir()
 )
 
+# Lesson 9: deployed, the agent's token only works on Google's mTLS hosts (*.mtls.googleapis.com);
+# the plain host answered 401. The build's .env sets the mTLS URL; locally we use the plain one.
+CATALOG_MCP_URL = os.environ.get("CATALOG_MCP_URL", "https://dataplex.googleapis.com/mcp")
+
 _creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
 
 
@@ -40,7 +48,7 @@ def _catalog_headers(_context) -> dict[str, str]:
 
 
 catalog = McpToolset(
-    connection_params=StreamableHTTPConnectionParams(url="https://dataplex.googleapis.com/mcp"),
+    connection_params=StreamableHTTPConnectionParams(url=CATALOG_MCP_URL),
     header_provider=_catalog_headers,
     tool_filter=["search_entries", "lookup_context", "lookup_entry"],
 )
@@ -104,3 +112,7 @@ If a tool fails, say what failed. Never invent figures.""",
     tools=[remember_analyst, catalog, bigquery, skills],  # NEW: the skill toolset joins the list
     output_key="last_answer",
 )
+
+# Lesson 9: an App wraps the agent and adds plugins that run around every call.
+# adk web and adk deploy look for `app` first, then `root_agent`.
+app = App(name="ga4_guide", root_agent=root_agent, plugins=[GuardrailsPlugin()])

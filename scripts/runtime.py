@@ -1,6 +1,7 @@
 """Look at, talk to, or delete our deployed agent on Agent Runtime (lesson 8).
 
   uv run python scripts/runtime.py info   RESOURCE          # name, identity, settings
+  uv run python scripts/runtime.py principal RESOURCE        # the IAM member string for this agent (lesson 9)
   uv run python scripts/runtime.py ask    RESOURCE "question"
   uv run python scripts/runtime.py delete RESOURCE          # removes the deployed agent
 
@@ -30,6 +31,12 @@ def info(name: str) -> None:
     print("runs as:           ", getattr(spec, "effective_identity", None))
 
 
+def principal(name: str) -> None:
+    """Print the agent's identity in the form IAM commands want: principal://..."""
+    agent = client.runtimes.get(name=name)
+    print("principal://" + agent.api_resource.spec.effective_identity)
+
+
 async def ask(name: str, question: str) -> None:
     agent = client.runtimes.get(name=name)
     async for event in agent.async_stream_query(user_id="lesson8", message=question):
@@ -52,6 +59,8 @@ if __name__ == "__main__":
     command, name = sys.argv[1], sys.argv[2]
     if command == "info":
         info(name)
+    elif command == "principal":
+        principal(name)
     elif command == "ask":
         asyncio.run(ask(name, sys.argv[3]))
     elif command == "delete":

@@ -35,10 +35,12 @@ agents/okf_guide/     a small agent that uses only our MCP server (lesson 5)
 agents/ga4_team/      multi-agent: front desk, specialists, reviewer as a tool (lesson 7)
 agents/ga4_flow/      multi-agent: Workflow graph with a review loop (lesson 7)
 agents/ga4_registry/  finds its skill and catalog tools in Agent Registry (lesson 10)
+agents/sql_reviewer/  lesson 7's reviewer as its own agent, served over A2A (a2a_app.py) (lesson 12)
+agents/ga4_a2a/       analyst that calls the remote reviewer over A2A (lesson 12)
 mcp_servers/okf/      our own MCP server: Studio pages read live from Knowledge Catalog → Agent Registry (lesson 10)
 skills/ga4-context/   the skill (SKILL.md + references)                → Agent Registry skills (lesson 10)
 eval/                 eval sets and configs for `adk eval` (lesson 6)
-scripts/              helpers: adk.sh, stage_deploy.py, runtime.py, registry.py, skill_registry.py, ...
+scripts/              helpers: adk.sh, stage_deploy.py (--gateway), runtime.py, registry.py, skill_registry.py, egress_rules.py, ...
 build/                generated deploy copy (git-ignored)
 results/              what happened in each lesson, with evidence; cloud-resources.md lists what to delete
 ```

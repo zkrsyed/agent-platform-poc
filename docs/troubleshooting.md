@@ -1,6 +1,6 @@
 # Troubleshooting and lessons learned
 
-Every problem we hit in lessons 4 to 10, with its cause and fix. The same table is in `index.html` (Troubleshooting section).
+Every problem we hit in lessons 4 to 11, with its cause and fix. The same table is in `index.html` (Troubleshooting section).
 
 | Lesson | Symptom | Cause | Fix |
 |---|---|---|---|
@@ -32,6 +32,14 @@ Every problem we hit in lessons 4 to 10, with its cause and fix. The same table 
 | 10 | Skill upload `400 ... type is required` | Required fields not in the docs page | Read the API's discovery document (`$discovery/rest?version=v1`): `type: SIMPLE`, `targetState` |
 | 10 | `409 The resource is being created` | The skill was still being created | Wait; `targetState: ACTIVE` at creation makes `activate` unnecessary |
 | 10 | The registry's MCP toolset offers write tools | `get_mcp_toolset` returns the whole server | Set `toolset.tool_filter = [...]` afterwards |
+| 11 | `gcloud services list` doesn't show an API you just enabled | Without `--project` it lists your default project (ml-ops) | Always pass `--project kc-okf-poc-261122` |
+| 11 | Gateway import: YAML rejected or fields ignored | The docs' YAML didn't match gcloud's schema | Read `$(gcloud info --format='value(installation.sdk_root)')/lib/googlecloudsdk/schemas/networkservices/v1/AgentGateway.yaml`: `protocols: [MCP]` required, `governedAccessPath` under `googleManaged` |
+| 11 | `EXCEEDS_MAX_CONDITION_LIST_SIZE` on `access-policies create` | A condition's list may hold at most 10 items (the docs' example has 20) | Split into rules of 10 (`scripts/egress_rules.py`) |
+| 11 | `POLICY_NOT_FOUND` on `policy-bindings create` | The policy create before it had failed | Fix the policy first; if it says "recently created", wait a minute |
+| 11 | Traces tab empty; log: "Cloud Resource Manager API has not been used" | ADK's tracing looks up the project; the API was off. Span view with "only agent invocations" also looked empty | Enable `cloudresourcemanager.googleapis.com`; use Trace view |
+| 11 | IAP log empty or all `granted: true` | IAP logged only the MCP `initialize`, even for calls the door denied | Read the gateway log: `jsonPayload.authzPolicyInfo.result` (ALLOWED / DENIED) |
+| 11 | DRY_RUN shows ALLOWED for everything | In dry run the guard lets every call through and the gateway log says ALLOWED | Enforce briefly to see real DENIED results |
+| 11 | Blocked tool, but the agent still answered (and named the blocked source) | The same knowledge was in the skill and BigQuery; the model claimed the catalog anyway | Check traces and the gateway log, not just the answer |
 
 ## Lessons learned
 
@@ -41,5 +49,7 @@ Every problem we hit in lessons 4 to 10, with its cause and fix. The same table 
 - Least privilege is a loop: grant one role, read the error, grant the next (lesson 9).
 - 401 = credentials not accepted; 403 = known but not allowed.
 - When something fails in the cloud, read the logs: the container log and the audit log told us every cause.
+- A gateway blocks destinations, not knowledge; a dry run shows traffic, not decisions (lesson 11).
+- Spend: one agent question is ~120K tokens (~$0.11); evals multiply it. Estimate first, delete per-hour resources after the lesson (lesson 11).
 - Carry vs look up: a copied skill drifts; a live page or registry entry stays current but must be reachable (lessons 5, 10).
 - Before putting anything in a public repo, check it for secrets, emails and project numbers (screenshots too).

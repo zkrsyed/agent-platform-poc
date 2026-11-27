@@ -80,7 +80,7 @@ Every term this POC touches, explained in one line with a .NET or SQL Server com
 | **Agent metadata** | What the registry holds about an agent: name, version, framework, capabilities, endpoint, agent card | A `.nuspec` | 10 |
 | **Agent Gateway** | The networking layer that governs agent traffic. Agent Runtime routes outbound calls through it automatically | API Management | 11 |
 | **Egress vs client-to-agent mode** | Egress governs calls *from* an agent to tools and agents; client-to-agent governs calls *into* an agent (not supported for Gemini Enterprise) | Outbound vs inbound firewall rules | 11 |
-| **Egress policy** | An IAM-style policy that lets a given agent principal call a destination (role `roles/iap.egressor`) | A firewall rule tied to an identity | 11 |
+| **Egress policy** | Lets one agent principal call a destination. With IAP V2 (lesson 11) this is a **Unified Access Policy**; `roles/iap.egressor` alone does not open egress (**docs**) | Outbound firewall rule | 11 |
 | **CEL condition** | Common Expression Language rule on a policy, e.g. `mcp.toolName == "lookup_entry"`, to allow or deny single MCP tools | A `WHERE` clause on permissions | 11 |
 | **Permissive vs ENFORCED** | In permissive mode the gateway only logs what it would block; ENFORCED actually blocks | Audit mode vs deny mode | 11 |
 | **Model Armor** | Content guardrails on prompts and responses (prompt injection, sensitive data); can run on Agent Gateway | A WAF for prompts | 11 |
@@ -172,3 +172,10 @@ Every term this POC touches, explained in one line with a .NET or SQL Server com
 | **Skill revision / state** | Each upload is a revision; a skill is Draft, Active, Disabled...; only Active skills download | Package versions | 10 |
 | **`CUSTOM` registry entry** | How an auto-registered ADK agent appears: Agent Runtime URLs and identity, no agent card ("Non A2A") | A service with no API docs | 10 |
 | **Implicit caching** | Gemini reuses a repeated prompt prefix by itself and bills it lower (`input_cached_tokens`) | A query plan cache | 5 |
+| **IAP (Identity-Aware Proxy)** | The guard: checks who is calling against IAM's rules, at a door. Also guards web apps and SSH; V2 handles agent calls | An auth middleware | 11 |
+| **Authz extension / authz policy** | The extension is the guard (IAP); the authz policy hooks it to a gateway ("this door uses this guard") | Middleware + its registration | 11 |
+| **Unified Access Policy (UAP)** | The list the guard reads: ALLOW/DENY rules per agent principal and destination (host, or registered MCP server and tool) | Firewall rules per identity | 11 |
+| **Default deny** | An enforced egress gateway blocks everything not allowed by a rule | A firewall with no rules | 11 |
+| **DRY_RUN vs ENFORCED** | Dry run lets every call through and logs; enforced really blocks. In our test the dry run logged ALLOWED for everything | Report-only vs enforced | 11 |
+| **Registered vs unregistered destination** | Registered = in the gateway's regional Agent Registry (tool-level rules possible); unregistered = a plain host (host/path rules only) | Known service vs raw URL | 11 |
+| **Certificate-bound token** | A token that works only with the agent's own certificate (mTLS); turned off with a gateway (GOOGLE_API_ENABLE_RUNTIME_BOUND_TOKEN=false) | A token pinned to a client cert | 11 |

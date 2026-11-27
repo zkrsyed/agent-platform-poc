@@ -378,7 +378,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
   <div class="card" style="--c:var(--cloud)"><h3>Agent Runtime</h3><p>Managed hosting for agents, with managed sessions and Memory Bank. Formerly Agent Engine.</p><span class="net">≈ App Service</span></div>
   <div class="card" style="--c:var(--gov)"><h3>Agent Identity</h3><p>Each deployed agent gets its own <code>principal://</code> ID that you grant IAM roles to. No shared service-account keys. Without an organization the ID uses <code>agents.global.proj-NUMBER</code>; its token works on Google's mTLS hosts (lessons 8–9, <strong>verified</strong>).</p><span class="net">≈ Managed Identity</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>Agent Registry</h3><p>A catalog of agents, MCP servers and skills, so other agents and people can find them. Agent Runtime agents and Google's MCP servers appear by themselves; ours are registered as services (lesson 10, <strong>verified</strong>).</p><span class="net">≈ service registry / NuGet feed</span></div>
-  <div class="card" style="--c:var(--gov)"><h3>Agent Gateway + Model Armor</h3><p>All of the agent's outbound calls pass through it. Policies say which agent principal may call which MCP tool (a CEL rule on <code>mcp.toolName</code>), and Model Armor filters the content.</p><span class="net">≈ API Management + WAF, per identity</span></div>
+  <div class="card" style="--c:var(--gov)"><h3>Agent Gateway + Model Armor</h3><p>All of the agent's outbound calls pass through it, even Gemini and sessions. An IAP guard checks each call against an access policy: which agent principal may reach which host, or which MCP tool when the server is registered in the gateway's region (CEL on <code>destination.agent_registry.mcp_server.tool.name</code>). Model Armor filters content. <strong>Verified</strong>: it denied a catalog call that IAM allowed (lesson 11).</p><span class="net">≈ API Management + WAF, per identity</span></div>
   <div class="card" style="--c:var(--cloud)"><h3>Skill Registry</h3><p>Skills stored in Agent Registry, with revisions and states (only Active ones download). Agents find one with <code>search_skills</code> and load it by name instead of shipping it with their own code (lesson 10, <strong>verified</strong>).</p><span class="net">≈ private NuGet feed</span></div>
   <div class="card" style="--c:var(--tool)"><h3>MCP</h3><p>The standard way to plug tools and data into any agent. We use Google's hosted server and build one of our own.</p><span class="net">≈ ODBC for agent tools</span></div>
   <div class="card" style="--c:var(--tool)"><h3>Skill</h3><p>A <code>SKILL.md</code> folder of know-how that the agent loads only when it needs it (progressive disclosure).</p><span class="net">≈ a runbook opened on demand</span></div>
@@ -399,8 +399,8 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
   <tbody>
     <tr><td><strong>Runs</strong></td><td>Inside the agent process</td><td>Outside, on every outbound call</td></tr>
     <tr><td><strong>Owned by</strong></td><td>Whoever deploys the agent</td><td>Platform or security team</td></tr>
-    <tr><td><strong>Bypassable?</strong></td><td>Yes, by changing the code</td><td>No (<strong>docs</strong>)</td></tr>
-    <tr><td><strong>Good for</strong></td><td>Logging, human approval, fixing arguments</td><td>Hard allow/deny per identity and tool, Model Armor</td></tr>
+    <tr><td><strong>Bypassable?</strong></td><td>Yes, by changing the code</td><td>No: it denied a catalog call that IAM allowed (<strong>verified</strong>, lesson 11)</td></tr>
+    <tr><td><strong>Good for</strong></td><td>Logging, human approval, fixing arguments</td><td>Hard allow/deny per identity and host; per MCP tool when the server is registered in the gateway's region; Model Armor</td></tr>
   </tbody>
 </table>
 </div>
@@ -422,8 +422,8 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>8</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/08-deploy/README.md">Deploy to Agent Runtime</a></strong> <span class="cost">☁</span></td><td><code>adk deploy agent_engine</code> of a clean build copy (skill inside, no Langfuse key), Agent Identity, scale to zero; the deliberate first 403</td><td><span class="badge done">done</span></td></tr>
     <tr><td>9</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/09-identity-and-guardrails/README.md">Identity, IAM, guardrails in code</a></strong> <span class="cost">☁</span></td><td>Least-privilege roles for the agent principal (one 403 at a time); a <code>GuardrailsPlugin</code> that logs tool calls, blocks write and city-level SQL, asks before a full-table scan, and stops retry loops</td><td><span class="badge done">done</span></td></tr>
     <tr><td>10</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/10-registry/README.md">Registry: agents, MCP servers, skills</a></strong> <span class="cost">☁</span></td><td>Enable Agent Registry (free); find the auto-registered agent and Google's MCP servers; register our MCP server (tool spec) and skill; <code>ga4_registry</code> finds its skill and catalog tools in the registry</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>11</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/11-gateway/README.md">Agent Gateway + governance</a></strong> <span class="cost">☁</span></td><td>Preflight first (early preview access? organization?); egress gateway, default deny, a Unified Access Policy that blocks one MCP tool for our agent's principal; DRY_RUN then ENFORCED; Model Armor</td><td><span class="badge planned">ready</span></td></tr>
-    <tr><td>12</td><td><strong>A2A between agents</strong> <span class="cost">☁</span></td><td>A separately deployed data policy agent with its own identity; found in the Registry and called over A2A through the Gateway</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>11</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/11-gateway/README.md">Agent Gateway + governance</a></strong> <span class="cost">☁</span></td><td>Preflight first (early preview access? organization?); egress gateway, default deny, a Unified Access Policy that blocks one MCP tool for our agent's principal; DRY_RUN then ENFORCED; Model Armor</td><td><span class="badge done">done</span></td></tr>
+    <tr><td>12</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/12-a2a/README.md">A2A between agents</a></strong> <span class="cost">☁</span></td><td>Lesson 7's reviewer as its own agent behind A2A (agent card, <code>to_a2a</code>, <code>RemoteA2aAgent</code>), first locally; later deployed with its own identity, found in the Registry</td><td><span class="badge planned">ready</span></td></tr>
     <tr><td>13</td><td><strong>Memory</strong> <span class="cost">☁</span></td><td>Session vs Memory Bank (optional)</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>14</td><td><strong>Web GUI</strong> <span class="cost">☁</span></td><td>A chat page with login on Cloud Run calling the deployed agent; Gemini Enterprise app compared</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>15</td><td><strong>A2UI</strong> <span class="cost">☁</span></td><td>Results as an A2UI table, a picker for ambiguous questions; AG-UI and MCP Apps compared</td><td><span class="badge planned">planned</span></td></tr>
@@ -445,12 +445,12 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
 <p class="lede">What we did in each lesson, what we found, and the questions asked along the way, with the answers in plain words. It's written to be re-read later without the chat. Click a lesson to open it, or use the buttons to open or fold all of them. Evidence for every <strong>verified</strong> claim is in <code>results/</code>.</p>
 <div class="jctl"><button type="button" id="expandAll">Open all lessons</button><button type="button" id="collapseAll">Fold all lessons</button></div>
 <nav class="toc" id="jnav" aria-label="Jump to a lesson"></nav>
-<div class="remember"><h4>Next session (prepared on 2026-11-26)</h4>
+<div class="remember"><h4>Next session (prepared on 2026-11-27)</h4>
 <ul>
-<li><strong>Lesson 11, Agent Gateway</strong>, starts with a <strong>preflight</strong>: enable <code>networkservices.googleapis.com</code>, then check whether Agent Runtime egress needs early-preview access or an organization (our project has none). On "no-go", record the finding and go to lesson 12.</li>
-<li>Still running: <code>ga4-guide</code> on Agent Runtime (idle is not billed during the Preview), its IAM roles, and the registry entries. Everything is listed with delete commands in <code>results/cloud-resources.md</code>.</li>
-<li>Each terminal tab: set <code>ID=7105399555822190592</code>, <code>R=...</code>, <code>P=...</code> (lesson 9, Step 2) before cloud commands.</li>
-<li>Waiting from earlier lessons: lesson 5 Part B (MCP server on Cloud Run), lesson 23 (caching). Problems and fixes so far: see <a href="#troubleshooting">Troubleshooting</a>.</li>
+<li><strong>First, cost:</strong> the Agent Gateway <code>ga4-egress</code> is <strong>still running</strong> (price not published, maybe per hour). Turn it off with lesson 11's <strong>Part E</strong>, then look at Billing → Reports (group by service, then SKU).</li>
+<li><strong>Lesson 12, A2A:</strong> the reviewer from lesson 7 as its own agent. Part A runs locally: terminal A serves <code>sql_reviewer</code> on port 8001, terminal B runs <code>adk web</code> with <code>ga4_a2a</code>. Two questions at most (~$0.15–0.30 each, <strong>guess</strong>).</li>
+<li><strong>Cost rules</strong> (lesson plan): estimate evals before running them, 1 run by default; delete per-hour resources at the end of each session. The $20 project budget only warns.</li>
+<li>Each terminal tab: set <code>ID=7105399555822190592</code>, <code>R=...</code>, <code>P=...</code> before cloud commands. Problems and fixes: <a href="#troubleshooting">Troubleshooting</a>.</li>
 </ul></div>
 
 <details class="lesson" id="l0">
@@ -1280,6 +1280,84 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
 </ul></div>
 </details>
 
+<details class="lesson" id="l11">
+<summary><span class="num">Lesson 11</span><span class="ttl">Agent Gateway and policies</span><span class="when">2026-11-27</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p><strong>Agent Gateway</strong> is a door every outgoing call of a deployed agent must pass: Gemini, sessions, logging, BigQuery, MCP servers. At the door stands a <strong>guard</strong> (IAP, Identity-Aware Proxy) that checks each call against a <strong>list</strong> (an IAM access policy): "this agent may reach these addresses". Anything not on the list is blocked (<strong>default deny</strong>). The agent's code can't go around it, and IAM (lesson 9) still applies at the destination. It worked in our project <strong>without an organization</strong> or a preview sign-up (<strong>verified</strong>).</p>
+</div>
+
+<h4>The four pieces, and how they connect</h4>
+<pre class="diagram">ga4-guide ──(deploy setting)──► 🚪 ga4-egress ──(🔗 ga4-egress-authz)──► 💂 ga4-iap-guard (IAP) ──(reads)──► 📋 ga4-guide-egress
+ the agent    agent_gateway_config   the door      the hookup:                  the guard, DRY_RUN            the list (IAM access policy):
+                                                   "this door uses this guard"   then ENFORCED                 platform hosts, BigQuery, catalog</pre>
+<div class="table-wrap"><table>
+<tr><th>Piece</th><th>Made with</th><th>Where to see it</th></tr>
+<tr><td>🚪 Gateway <code>ga4-egress</code> (Agent-to-Anywhere)</td><td><code>gcloud network-services agent-gateways import</code> + YAML</td><td>Agents → Govern → <strong>Gateways</strong></td></tr>
+<tr><td>💂 Guard <code>ga4-iap-guard</code> (authz extension, IAP V2)</td><td><code>gcloud beta service-extensions authz-extensions import</code></td><td>Network Services → <strong>Service Extensions</strong></td></tr>
+<tr><td>🔗 Hookup <code>ga4-egress-authz</code> (authz policy)</td><td><code>gcloud network-security authz-policies import</code></td><td><code>gcloud</code> only (no console page found)</td></tr>
+<tr><td>📋 List <code>ga4-guide-egress</code> (access policy + binding)</td><td><code>scripts/egress_rules.py</code> → <code>gcloud iam access-policies create/update</code></td><td>Agents → Govern → <strong>Policies</strong></td></tr>
+<tr><td>Agent → door</td><td><code>stage_deploy.py --gateway</code>, then <code>adk deploy</code></td><td>agent → Service configuration → <strong>Agent to Anywhere (Egress)</strong></td></tr>
+</table></div>
+<div class="two">
+<figure class="shot"><img src="docs/screenshots/11-gateways.webp" alt="Gateways page with ga4-egress, Agent-to-Anywhere (egress), us-central1" loading="lazy"><figcaption>The door: <code>ga4-egress</code>, Agent-to-Anywhere, us-central1.</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/11-service-extension.webp" alt="Service Extensions page with ga4-iap-guard, type Authorization" loading="lazy"><figcaption>The guard: <code>ga4-iap-guard</code>, type Authorization. "In use by: None" only counts load balancers.</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/11-access-policies.webp" alt="Policies page: access policy rules for ga4-guide listing unregistered endpoints" loading="lazy"><figcaption>The list, grouped under our agent: part 1 and part 2, ten Google addresses each (a list may hold at most 10).</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/11-agent-egress-config.webp" alt="Agent service configuration showing Agent to Anywhere (Egress) set to ga4-egress" loading="lazy"><figcaption>The agent connected to the door: "Agent to Anywhere (Egress)" = <code>.../agentGateways/ga4-egress</code>.</figcaption></figure>
+</div>
+
+<h4>What happened (verified)</h4>
+<div class="table-wrap"><table>
+<tr><th>Mode</th><th>List</th><th>What the gateway log said</th></tr>
+<tr><td>DRY_RUN</td><td>20 Google platform hosts</td><td><strong>ALLOWED for every call</strong> (65), BigQuery and the catalog too. Dry run shows <em>what</em> goes out, not what would be blocked</td></tr>
+<tr><td>ENFORCED</td><td>platform + BigQuery, <strong>no catalog</strong></td><td>catalog: <strong>403 DENIED</strong> ×4, everything else ALLOWED. Blocked although IAM allows it (<code>mcp.toolUser</code>)</td></tr>
+<tr><td>ENFORCED</td><td>platform + BigQuery + catalog</td><td>final state; the catalog is allowed again</td></tr>
+</table></div>
+<div class="two">
+<figure class="shot"><img src="docs/screenshots/11-dataplex-decisions.webp" alt="Terminal table of catalog calls: four 403 DENIED tools/list, two earlier 200 ALLOWED tools/call" loading="lazy"><figcaption>Every call to the catalog: dry run (200 ALLOWED, with the tool name) and enforced (403 DENIED).</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/11-denied-log.webp" alt="Logs Explorer filtered to authzPolicyInfo.result DENIED, four POST 403 rows to dataplex" loading="lazy"><figcaption>Logs Explorer, <code>jsonPayload.authzPolicyInfo.result="DENIED"</code>.</figcaption></figure>
+</div>
+<ul>
+  <li><strong>The agent still answered</strong> with the catalog blocked: the same rule is in its skill (inside the agent, no network) and BigQuery was allowed. It still <strong>claimed</strong> the rule came "from the data catalog". A gateway blocks destinations, not knowledge, and a confident answer isn't proof: the logs told the truth.</li>
+  <li><strong>Read the gateway's log, not IAP's.</strong> IAP's audit log said <code>granted: true</code> even for the calls the door denied.</li>
+  <li><strong>Tool-level rules</strong> (block <code>lookup_entry</code>, keep <code>lookup_context</code>) need the MCP server registered in the gateway's <strong>own region</strong>. Google's catalog is registered in <code>global</code>, so the gateway sees a plain host: allow or block the whole catalog. Not done (README Step 9).</li>
+  <li><strong>Docs vs reality:</strong> the gateway YAML needed <code>protocols: [MCP]</code> and <code>googleManaged.governedAccessPath</code> (from gcloud's schema); the docs' 20-host list broke the 10-item limit.</li>
+  <li><strong>Lesson 9's 401 explained:</strong> the agent's tokens are <strong>tied to its certificate</strong>. With a gateway the docs turn that off (<code>GOOGLE_API_ENABLE_RUNTIME_BOUND_TOKEN=false</code>), and the plain catalog host returned 200.</li>
+</ul>
+
+<h4>Tracing turned on</h4>
+<p>Redeployed with <code>--otel_to_cloud</code> (plus <code>cloudresourcemanager</code> enabled, which ADK needs to label traces). One question = <strong>one trace</strong> = 20 spans, 26 s, <strong>120.6K input tokens</strong>: 7 Gemini calls around 6 tool calls. A session groups several traces; each log line carries its trace ID. Prompt text isn't stored unless you turn it on.</p>
+<div class="two">
+<figure class="shot"><img src="docs/screenshots/11-trace-timeline.webp" alt="Trace timeline: invoke_agent with alternating generate_content and execute_tool spans" loading="lazy"><figcaption>Timeline: think (Gemini) → tool → think, 20 spans in 26 s.</figcaption></figure>
+<figure class="shot"><img src="docs/screenshots/11-trace-graph.webp" alt="Trace graph: invoke_agent fanning out to Gemini calls and tool calls, with MCP and BigQuery children" loading="lazy"><figcaption>The same trace as a graph: MCP calls and BigQuery jobs sit under their tool span.</figcaption></figure>
+</div>
+
+<h4>Cost check</h4>
+<p>Billing → Reports: <strong>$41.51 this month, all Vertex AI (Gemini)</strong>, $22 of it on Nov 22 (the kc-okf POC). One question ≈ 120K tokens ≈ $0.11, and evals multiply that. The gateway's price isn't published; it may be billed per hour, so it gets turned off between lessons (README Part E). The $20 project budget <strong>warns, it doesn't stop</strong> spending.</p>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">IAM vs IAP?</p>
+<p>IAM (Identity and Access Management) holds the rules: who may do what. IAP (Identity-Aware Proxy) is the guard that checks those rules on the network as calls pass. IAP also guards web apps and SSH; the gateway uses it for outgoing agent calls.</p></div>
+<div class="qa"><p class="q">Why "proxy"?</p>
+<p>A middleman that makes the call for you. Every call passes through it, so it can check, log or block each one.</p></div>
+<div class="qa"><p class="q">Two things are called "policy"?</p>
+<p>The <strong>authz policy</strong> is the hookup (this door uses this guard). The <strong>access policy</strong> is the list (this agent may reach these addresses).</p></div>
+<div class="qa"><p class="q">Agent identity vs service account?</p>
+<p>IAM roles are just as coarse for both. Per-tool control comes from the gateway; its rules <strong>name</strong> the agent identity, which Agent Runtime requires for a gateway. An agent identity is also one per agent, never shared.</p></div>
+<div class="qa"><p class="q">Cloud Run vs Agent Runtime?</p>
+<p>Cloud Run runs any container. Agent Runtime runs agents, with sessions, memory, agent identity, gateway support and the agent tabs (Playground, Traces...). "Agent Engine" is its old name, still in <code>adk deploy agent_engine</code>.</p></div>
+<div class="qa"><p class="q">Logs vs traces?</p>
+<p>Logs are lines ("this happened"). A trace is one question's timeline, made of spans (steps). The Playground's log panel shows only the agent's own logs; the gateway's are in Logs Explorer.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/11-gateway/README.md">lessons/11-gateway</a> · evidence: <code>results/11-gateway.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>Door (gateway) → hookup (authz policy) → guard (IAP) → list (access policy), plus the agent's deploy setting.</li>
+<li>Enforced egress = default deny: the agent's own needs (Gemini, sessions, telemetry) must be on the list too.</li>
+<li>Dry run lets everything through; to see real decisions, enforce and read <code>authzPolicyInfo.result</code>.</li>
+<li>Tool-level rules need the MCP server registered in the gateway's region.</li>
+<li>A gateway may cost per hour: turn it off after the lesson.</li>
+</ul></div>
+</details>
+
 <h2 id="troubleshooting">Troubleshooting and lessons learned</h2>
 <p class="lede">Every problem we hit, with its cause and fix, for later reference. Also in <a href="docs/troubleshooting.md">docs/troubleshooting.md</a>.</p>
 <div class="table-wrap"><table>
@@ -1312,6 +1390,14 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
 <tr><td>10</td><td>Skill upload <code>400 ... type is required</code></td><td>Required fields not in the docs page</td><td>Read the API&#x27;s discovery document (<code>$discovery/rest?version=v1</code>): <code>type: SIMPLE</code>, <code>targetState</code></td></tr>
 <tr><td>10</td><td><code>409 The resource is being created</code></td><td>The skill was still being created</td><td>Wait; <code>targetState: ACTIVE</code> at creation makes <code>activate</code> unnecessary</td></tr>
 <tr><td>10</td><td>The registry&#x27;s MCP toolset offers write tools</td><td><code>get_mcp_toolset</code> returns the whole server</td><td>Set <code>toolset.tool_filter = [...]</code> afterwards</td></tr>
+<tr><td>11</td><td><code>gcloud services list</code> doesn&#x27;t show an API you just enabled</td><td>Without <code>--project</code> it lists your default project (ml-ops)</td><td>Always pass <code>--project kc-okf-poc-261122</code></td></tr>
+<tr><td>11</td><td>Gateway import: YAML rejected or fields ignored</td><td>The docs&#x27; YAML didn&#x27;t match gcloud&#x27;s schema</td><td>Read <code>$(gcloud info --format=&#x27;value(installation.sdk_root)&#x27;)/lib/googlecloudsdk/schemas/networkservices/v1/AgentGateway.yaml</code>: <code>protocols: [MCP]</code> required, <code>governedAccessPath</code> under <code>googleManaged</code></td></tr>
+<tr><td>11</td><td><code>EXCEEDS_MAX_CONDITION_LIST_SIZE</code> on <code>access-policies create</code></td><td>A condition&#x27;s list may hold at most 10 items (the docs&#x27; example has 20)</td><td>Split into rules of 10 (<code>scripts/egress_rules.py</code>)</td></tr>
+<tr><td>11</td><td><code>POLICY_NOT_FOUND</code> on <code>policy-bindings create</code></td><td>The policy create before it had failed</td><td>Fix the policy first; if it says &quot;recently created&quot;, wait a minute</td></tr>
+<tr><td>11</td><td>Traces tab empty; log: &quot;Cloud Resource Manager API has not been used&quot;</td><td>ADK&#x27;s tracing looks up the project; the API was off. Span view with &quot;only agent invocations&quot; also looked empty</td><td>Enable <code>cloudresourcemanager.googleapis.com</code>; use Trace view</td></tr>
+<tr><td>11</td><td>IAP log empty or all <code>granted: true</code></td><td>IAP logged only the MCP <code>initialize</code>, even for calls the door denied</td><td>Read the gateway log: <code>jsonPayload.authzPolicyInfo.result</code> (ALLOWED / DENIED)</td></tr>
+<tr><td>11</td><td>DRY_RUN shows ALLOWED for everything</td><td>In dry run the guard lets every call through and the gateway log says ALLOWED</td><td>Enforce briefly to see real DENIED results</td></tr>
+<tr><td>11</td><td>Blocked tool, but the agent still answered (and named the blocked source)</td><td>The same knowledge was in the skill and BigQuery; the model claimed the catalog anyway</td><td>Check traces and the gateway log, not just the answer</td></tr>
 </table></div>
 <h3>Lessons learned</h3>
 <ul>
@@ -1321,6 +1407,8 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
   <li>Least privilege is a loop: grant one role, read the error, grant the next (lesson 9).</li>
   <li>401 = credentials not accepted; 403 = known but not allowed.</li>
   <li>When something fails in the cloud, read the logs: the container log and the audit log told us every cause.</li>
+  <li>A gateway blocks destinations, not knowledge; a dry run shows traffic, not decisions (lesson 11).</li>
+  <li>Spend: one agent question is ~120K tokens (~$0.11); evals multiply it. Estimate first, delete per-hour resources after the lesson (lesson 11).</li>
   <li>Carry vs look up: a copied skill drifts; a live page or registry entry stays current but must be reachable (lessons 5, 10).</li>
   <li>Before putting anything in a public repo, check it for secrets, emails and project numbers (screenshots too).</li>
 </ul>
@@ -1426,7 +1514,7 @@ const G = [
  ["Managed Agents","Agents defined on the platform itself; they can mount registered skills","A hosted low-code app"],
  ["Agent Gateway","Governs agent traffic; Agent Runtime routes outbound calls through it","API Management"],
  ["Egress vs client-to-agent","Calls out of an agent vs calls into it","Outbound vs inbound firewall rules"],
- ["Egress policy","Lets one agent principal call a destination (roles/iap.egressor)","A firewall rule tied to an identity"],
+ ["Egress policy","Lets one agent principal call a destination. With IAP V2 (lesson 11) this is a Unified Access Policy; roles/iap.egressor alone does not open egress (docs)","Outbound firewall rule"],
  ["CEL condition","Rule such as mcp.toolName == \"lookup_entry\" to allow or deny single MCP tools","A WHERE clause on permissions"],
  ["Permissive vs ENFORCED","Log what would be blocked vs actually block it","Audit mode vs deny mode"],
  ["Model Armor","Guardrails on prompts and responses; can run on Agent Gateway","A WAF for prompts"],
@@ -1452,6 +1540,13 @@ const G = [
  ["Topology","Graph of the agent and everything it calls","Application Map"],
  ["Span / trace","A trace is one request; a span is one step in it","A call-tree row"],
  ["Implicit caching", "Gemini reuses a repeated prompt prefix by itself and bills it lower (input_cached_tokens); seen at ~7,200 tokens per call in lesson 5", "A query plan cache"],
+ ["IAP (Identity-Aware Proxy)", "The guard: checks who is calling against IAM's rules, at a door. Also guards web apps and SSH; V2 handles agent calls", "An auth middleware"],
+ ["Authz extension / authz policy", "The extension is the guard (IAP); the authz policy hooks it to a gateway (\"this door uses this guard\")", "Middleware + its registration"],
+ ["Unified Access Policy (UAP)", "The list the guard reads: ALLOW/DENY rules per agent principal and destination (host, or registered MCP server and tool)", "Firewall rules per identity"],
+ ["Default deny", "An enforced egress gateway blocks everything not allowed by a rule", "A firewall with no rules"],
+ ["DRY_RUN vs ENFORCED", "Dry run lets every call through and logs; enforced really blocks. In our test the dry run logged ALLOWED for everything", "Report-only vs enforced"],
+ ["Registered vs unregistered destination", "Registered = in the gateway's regional Agent Registry (tool-level rules possible); unregistered = a plain host (host/path rules only)", "Known service vs raw URL"],
+ ["Certificate-bound token", "A token that works only with the agent's own certificate (mTLS); turned off with a gateway (GOOGLE_API_ENABLE_RUNTIME_BOUND_TOKEN=false)", "A token pinned to a client cert"],
  ["LangSmith","LangChain's hosted tracing, eval and prompt tool","Third-party APM"],
  ["Langfuse","Open-source, self-hostable LangSmith alternative","Self-hosted Seq/Grafana"],
  ["Delivery and operations"],

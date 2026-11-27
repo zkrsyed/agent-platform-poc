@@ -424,7 +424,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>10</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/10-registry/README.md">Registry: agents, MCP servers, skills</a></strong> <span class="cost">☁</span></td><td>Enable Agent Registry (free); find the auto-registered agent and Google's MCP servers; register our MCP server (tool spec) and skill; <code>ga4_registry</code> finds its skill and catalog tools in the registry</td><td><span class="badge done">done</span></td></tr>
     <tr><td>11</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/11-gateway/README.md">Agent Gateway + governance</a></strong> <span class="cost">☁</span></td><td>Preflight first (early preview access? organization?); egress gateway, default deny, a Unified Access Policy that blocks one MCP tool for our agent's principal; DRY_RUN then ENFORCED; Model Armor</td><td><span class="badge done">done</span></td></tr>
     <tr><td>12</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/12-a2a/README.md">A2A between agents</a></strong> <span class="cost">☁</span></td><td>Lesson 7's reviewer as its own agent behind A2A (agent card, <code>to_a2a</code>, <code>RemoteA2aAgent</code>), first locally; later deployed with its own identity, found in the Registry</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>13</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/13-memory/README.md">Memory</a></strong> <span class="cost">☁</span></td><td>Session vs <code>user:</code> state vs Memory Bank: <code>agents/ga4_memory</code> (<code>preload_memory</code> + save after each answer), using the deployed agent's Memory Bank from <code>adk web</code></td><td><span class="badge planned">ready</span></td></tr>
+    <tr><td>13</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/13-memory/README.md">Memory</a></strong> <span class="cost">☁</span></td><td>Session vs <code>user:</code> state vs Memory Bank: <code>agents/ga4_memory</code> (<code>preload_memory</code> + save after each answer), using the deployed agent's Memory Bank from <code>adk web</code></td><td><span class="badge done">done</span></td></tr>
     <tr><td>14</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/14-web-gui/README.md">Web GUI</a></strong> <span class="cost">☁</span></td><td>A small chat page (<code>web/</code>) that streams from the deployed agent: sessions, streaming, user id; Cloud Run with IAP login and Gemini Enterprise written down, not run</td><td><span class="badge planned">ready</span></td></tr>
     <tr><td>15</td><td><strong>A2UI</strong> <span class="cost">☁</span></td><td>Results as an A2UI table, a picker for ambiguous questions; AG-UI and MCP Apps compared</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>16</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/16-observability/README.md">Observability: Google vs Langfuse</a></strong> <span class="cost">☁</span></td><td>One run sent to Cloud Trace and Langfuse at once (<code>--otel_to_cloud</code> + the <code>.env</code> exporter), compared span by span; the deployed agent's traces; Topology needs an organization</td><td><span class="badge planned">ready</span></td></tr>
@@ -445,10 +445,10 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
 <p class="lede">What we did in each lesson, what we found, and the questions asked along the way, with the answers in plain words. It's written to be re-read later without the chat. Click a lesson to open it, or use the buttons to open or fold all of them. Evidence for every <strong>verified</strong> claim is in <code>results/</code>.</p>
 <div class="jctl"><button type="button" id="expandAll">Open all lessons</button><button type="button" id="collapseAll">Fold all lessons</button></div>
 <nav class="toc" id="jnav" aria-label="Jump to a lesson"></nav>
-<div class="remember"><h4>Next session (prepared on 2026-11-27, after lesson 23)</h4>
+<div class="remember"><h4>Next session (prepared on 2026-11-27, after lesson 13)</h4>
 <ul>
 <li><strong>Lesson 23 is done:</strong> trimming the duplicate MCP payload cut input by 29%. Not yet in the deployed agent: add <code>COST_TRIM=1</code> to the build's <code>.env</code> at the next redeploy. Explicit context caching is still unmeasured.</li>
-<li><strong>Next lessons, ready:</strong> 13 Memory Bank (about $0.30–0.50), 14 Web GUI (about $0.30), 16 Observability (about $0.10–0.20). All run locally; 13 and 14 use the deployed <code>ga4-guide</code>. Nothing new is created in the cloud except memories and sessions.</li>
+<li><strong>Next lessons, ready:</strong> 14 Web GUI (about $0.30), then 16 Observability (about $0.10–0.20). Both run locally; 14 calls the deployed <code>ga4-guide</code> and creates sessions on it. Lesson 13 is done and its memories are deleted.</li>
 <li><strong>Nothing billed per hour is running</strong>: the lesson 11 gateway is deleted; <code>ga4-guide</code> stays deployed (idle not billed during the Preview).</li>
 <li><strong>Cost rules</strong> (lesson plan): estimate evals before running them, 1 run by default; delete per-hour resources at the end of each session. The $20 project budget only warns.</li>
 <li>Each terminal tab: set <code>ID=7105399555822190592</code>, <code>R=...</code>, <code>P=...</code> before cloud commands. Problems and fixes: <a href="#troubleshooting">Troubleshooting</a>.</li>
@@ -1410,6 +1410,64 @@ sql_reviewer = AgentRegistry(project_id=..., location="us-central1").get_remote_
 </ul></div>
 </details>
 
+<details class="lesson" id="l13">
+<summary><span class="num">Lesson 13</span><span class="ttl">Memory Bank</span><span class="when">2026-11-27</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p><strong>Memory Bank</strong> is Agent Platform's long-term memory. It belongs to an Agent Runtime instance. After a conversation, its own model reads it and keeps short <strong>facts</strong> about the user; a later conversation <strong>searches</strong> those facts by meaning. We used the deployed <code>ga4-guide</code>'s Memory Bank from a local <code>adk web</code>, so nothing new was created.</p>
+</div>
+
+<h4>Three ways to "remember"</h4>
+<div class="table-wrap"><table>
+<tr><th></th><th>Session</th><th><code>user:</code> state (lesson 2)</th><th>Memory Bank</th></tr>
+<tr><td>What</td><td>every event of one conversation</td><td>keys our code writes (name, team)</td><td>short facts a model extracts</td></tr>
+<tr><td>Where here</td><td><code>agents/ga4_memory/.adk/session.db</code> (SQLite, also for <code>adk web</code>)</td><td>the same SQLite file</td><td>Google, in the Agent Runtime instance</td></tr>
+<tr><td>Found by</td><td>session id</td><td>user id, always all of it</td><td>a search with the new message (app + user scope)</td></tr>
+<tr><td>.NET comparison</td><td>chat history table</td><td>user profile table</td><td>a search index of notes</td></tr>
+</table></div>
+
+<h4>How it flows (verified in the ADK code and our run)</h4>
+<pre class="diagram">SAVE   answer done → after_agent_callback → add_session_to_memory()
+       → ingest_events (HTTPS, fire-and-forget, scope app+user) → Memory Bank:
+         buffer → its Gemini model extracts facts → merge with existing → store
+         (our run: facts existed 5 s later)
+
+USE    new message → before EACH Gemini call, preload_memory searches with that message
+       → matching facts come back → ADK adds a temporary user message:
+         "The following content is from your previous conversations with the user...
+          &lt;PAST_CONVERSATIONS&gt; ... &lt;/PAST_CONVERSATIONS&gt;"
+       (not in the system instruction, not saved in the session)</pre>
+
+<h4>What we saw</h4>
+<ul>
+  <li><strong>First try: 404</strong> "The ReasoningEngine does not exist". With a short ID, ADK took the region from <code>.env</code> (<code>global</code>, set for the model). The <strong>full</strong> <code>agentengine://projects/.../locations/us-central1/reasoningEngines/ID</code> fixed it.</li>
+  <li><strong>Conversation 1</strong> stated a preference and got $59,865.00 for 2020-12-07 to 12-13. Memory Bank kept <strong>2 facts</strong>: "My name is Priya and I work in merch analytics." and "I want revenue presented as weekly figures, net of refunds." Not the figure or the SQL.</li>
+  <li><strong>Conversation 2</strong>, a new session: 6 memory searches (one per Gemini call), and the Request view (event #2 → Request → <code>user_messages[0]</code>) showed both facts placed before the question. Answer: $9,465.00 for the week of 2021-01-04.</li>
+  <li><strong>Still 2 facts afterwards:</strong> the repeats were merged, not duplicated. Both were then deleted.</li>
+  <li><strong>Console:</strong> Deployments → <code>ga4-guide</code> → <strong>Memories</strong>: the facts with their scope, plus tiles for retrievals, extraction tokens, latency and changes. It opened without the App Hub prompt.</li>
+</ul>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">Do <code>adk run</code> and <code>adk web</code> keep sessions in different places?</p>
+<p>No: in ADK 2.15 both use a SQLite file per agent folder (<code>.adk/session.db</code>). Only our scripts used the in-RAM session service.</p></div>
+<div class="qa"><p class="q">How does the conversation get to Memory Bank, and how often are facts extracted?</p>
+<p>After each answer our callback sends the whole session (without thinking text) with your Google login. Memory Bank's own model extracts facts of certain kinds (preferences, personal details, instructions: <strong>docs</strong>) and merges them with what it has. Here that took 5 seconds; the trigger can be configured.</p></div>
+<div class="qa"><p class="q">How does a later conversation know about them, even locally?</p>
+<p>Same app name and user id. <code>preload_memory</code> searches with the new message before each Gemini call and inserts the matches into that request.</p></div>
+<div class="qa"><p class="q">What's behind Memory Bank: SQLite, Redis?</p>
+<p>Google doesn't say. It's a managed API with similarity search over the facts. Like BigQuery, you call it; you don't run it.</p></div>
+<div class="qa"><p class="q">Did the answer prove memory was used?</p>
+<p>Not on its own: the question already said "week", and the skill already nets refunds. The <strong>Request</strong> view proves the facts reached the model; a question without "week" would show a preference changing an answer (skipped).</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/13-memory/README.md">lessons/13-memory</a> · evidence: <code>results/13-memory.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>Session = one conversation; <code>user:</code> state = keys you choose; Memory Bank = facts a model chooses.</li>
+<li>Memories are scoped by app and user, and found by searching with the new message.</li>
+<li>Look at the request, not the answer, to see what memory added.</li>
+<li>Use the full Agent Runtime resource name for <code>agentengine://</code>.</li>
+<li>Check what was stored, and delete what shouldn't stay.</li>
+</ul></div>
+</details>
+
 <details class="lesson" id="l23">
 <summary><span class="num">Lesson 23</span><span class="ttl">Caching and cost</span><span class="when">2026-11-27</span><span class="badge done">done</span></summary>
 <div class="basics"><h4>The basics</h4>
@@ -1516,6 +1574,8 @@ sql_reviewer = AgentRegistry(project_id=..., location="us-central1").get_remote_
 <tr><td>11</td><td>Blocked tool, but the agent still answered (and named the blocked source)</td><td>The same knowledge was in the skill and BigQuery; the model claimed the catalog anyway</td><td>Check traces and the gateway log, not just the answer</td></tr>
 <tr><td>11</td><td>Redeployed without <code>--gateway</code>, but the agent is still bound</td><td>A missing setting keeps its old value on update</td><td>PATCH <code>?updateMask=spec.deploymentSpec.agentGatewayConfig</code> with an empty <code>deploymentSpec</code> (lesson 11 Part E)</td></tr>
 <tr><td>12</td><td>&quot;Ignoring a session state delta from a remote A2A peer&quot;</td><td>Each agent keeps its own session state</td><td>Expected: return what the caller needs in the reply</td></tr>
+<tr><td>13</td><td><code>404 The ReasoningEngine does not exist</code> from Memory Bank</td><td><code>agentengine://ID</code> (short) takes the region from <code>.env</code> (<code>global</code>); the agent is in <code>us-central1</code></td><td>Use the full <code>agentengine://projects/P/locations/us-central1/reasoningEngines/ID</code></td></tr>
+<tr><td>13</td><td><code>[Errno 98] address already in use</code> (port 8000)</td><td>A second <code>adk web</code> while the first still runs</td><td>Use the running one, or stop it first</td></tr>
 <tr><td>23</td><td>A script run stops early; <code>adk_request_confirmation</code> in the tools list</td><td>Lesson 9's guardrail asked a human to approve SQL without <code>event_date_dt</code>; nobody answers in a script</td><td>Treat that run as incomplete and run it again, or test in <code>adk web</code> and approve</td></tr>
 <tr><td>23</td><td>No <code>[tool_cache] HIT</code></td><td>The model didn't repeat a catalog call; it used the answer already in the conversation</td><td>Expected: the cache only helps when calls repeat</td></tr>
 </table></div>

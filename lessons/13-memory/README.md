@@ -38,7 +38,7 @@ Lesson 2 gave the agent `user:analyst_name`: a key **we** chose, written by a to
 - **`preload_memory`:** before **each** Gemini call, ADK searches Memory Bank with the analyst's message and adds the matching facts to the prompt. The model never calls it; it runs by itself. The other option, `load_memory`, is a normal tool the model calls when it decides it needs to.
 - **`save_to_memory`:** after each answer, `callback_context.add_session_to_memory()` sends the conversation to Memory Bank. Memory Bank decides what is worth keeping, so not every turn becomes a memory.
 
-**Where the memory lives:** Memory Bank belongs to an Agent Runtime instance. We reuse the deployed `ga4-guide`'s (`reasoningEngines/7105399555822190592`), so **nothing new is created**. Memories are kept per **app name** (`ga4_memory`) and **user id**. ADK picks it with a flag: `--memory_service_uri=agentengine://ID` (**verified** flag in ADK 2.15).
+**Where the memory lives:** Memory Bank belongs to an Agent Runtime instance. We reuse the deployed `ga4-guide`'s (`reasoningEngines/7105399555822190592`), so **nothing new is created**. Memories are kept per **app name** (`ga4_memory`) and **user id**. ADK picks it with a flag: `--memory_service_uri=agentengine://projects/.../locations/us-central1/reasoningEngines/ID` (**verified** flag in ADK 2.15). Use the **full** name: with only the ID, ADK takes the region from `.env`, which says `global` (for the model, lesson 8), and Memory Bank answers `404 The ReasoningEngine does not exist` (**verified**, first try).
 
 Free check (**verified** 2026-11-27): the agent loads with its 5 tools, and `scripts/memories.py list` reaches Memory Bank and prints `0 memories`.
 
@@ -50,7 +50,7 @@ Free check (**verified** 2026-11-27): the agent loads with its 5 tools, and `scr
 
 ```bash
 cd ~/apps/agent-platform-poc
-./scripts/adk.sh web --memory_service_uri=agentengine://7105399555822190592 agents
+./scripts/adk.sh web --memory_service_uri=agentengine://projects/kc-okf-poc-261122/locations/us-central1/reasoningEngines/7105399555822190592 agents
 ```
 
 In the browser, choose **`ga4_memory`** in the dropdown.
@@ -67,13 +67,15 @@ Ask:
 
 ### Step 3: what did Memory Bank keep?
 
-Wait about half a minute (fact extraction runs on Google's side; the timing is a **guess**), then:
+Wait a few seconds (in our run the facts existed **5 seconds** after the save, **verified**), then:
 
 ```bash
 uv run python scripts/memories.py list
 ```
 
-**Look for:** 1–3 facts in plain language, with `scope: app=ga4_memory user=user` (`adk web`'s default user id). Expect something like "prefers weekly revenue figures, net of refunds". The exact wording is up to Memory Bank's model.
+**Look for:** 1–3 facts in plain language, with `scope: app=ga4_memory user=user` (`adk web`'s user id is `user`, **verified**). Expect something like "prefers weekly revenue figures, net of refunds". The exact wording is up to Memory Bank's model.
+
+**In the console:** Agent Platform → Agents → Deployments → `ga4-guide` → **Memories**: the same facts in a table, with their scope. The script prints the project **number** in resource names: crop it before sharing a screenshot.
 
 ### Step 4: conversation 2, a new session
 
@@ -84,7 +86,8 @@ Click **New Session** (the top bar) and ask, **without** stating a preference:
 **Look for:**
 - It knows your name **without asking**. That's the `user:` state from lesson 2, not memory.
 - It gives a **weekly, net** figure and says it used your preference. That's Memory Bank.
-- In the Trace tab, the Gemini calls' request shows a block of past conversations that `preload_memory` added.
+- **The proof:** click event **#2** → the **Request** icon on the left → scroll to `user_messages`. Entry `0` is the block `preload_memory` added ("The following content is from your previous conversations with the user… `<PAST_CONVERSATIONS>`…"), entry `1` is your question. It's not in `system_instruction`.
+- **Careful:** this question already says "week", and the skill already nets refunds, so the **answer** alone can't prove memory was used. For that, ask in another new session without "week": "What was revenue in January 2021?" (Step 4b, about $0.11).
 
 ### Step 5 (optional): change your mind
 
@@ -95,6 +98,10 @@ In the same session:
 Run `memories.py list` again. Memory Bank should **update** or **replace** the old fact instead of keeping both (**docs**: it merges facts; to check).
 
 **Send me:** screenshots of conversation 2's answer and the `memories.py list` output.
+
+**What we saw (2026-11-27, `results/13-memory.md`):** 2 facts 5 seconds after the save; in the new session the memory block reached Gemini before the question; still 2 facts after conversation 2 (merged, not duplicated). Steps 4b and 5 skipped.
+
+**If you see `404 The ReasoningEngine does not exist`:** the start command used the short ID. Use the full `projects/.../locations/us-central1/reasoningEngines/ID`.
 
 ## Part B: when to use which
 
@@ -108,7 +115,7 @@ We fill this in together after Part A:
 
 ## Clean up
 
-Memories cost a little to store (**guess**). To delete them all, run `memories.py list`, then `memories.py delete NAME` for each one. They also go when `ga4-guide` is deleted at the end of the POC.
+Memories cost a little to store (**guess**). To delete them all, run `memories.py list`, then `memories.py delete NAME` for each one (done 2026-11-27: both deleted, 0 left). They also go when `ga4-guide` is deleted at the end of the POC.
 
 ## Check yourself
 

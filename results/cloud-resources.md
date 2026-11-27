@@ -25,6 +25,7 @@ P=$(uv run python scripts/runtime.py principal $R)   # before deleting the agent
 | 11 | Authz policy (hookup) | `ga4-egress-authz` (us-central1) | likely free (config) | **Deleted 2026-11-27** |
 | 11 | Access policy + policy binding (the list: platform, BigQuery, catalog) | `ga4-guide-egress` (global) | free (config) | `gcloud iam policy-bindings delete ga4-guide-egress --project kc-okf-poc-261122 --location global`, then `gcloud iam access-policies delete ga4-guide-egress --project kc-okf-poc-261122 --location global` |
 | 11 | Agent settings | `ga4-guide` **unbound** from the gateway (PATCH, 2026-11-27), tracing on (`--otel_to_cloud`) | traces and logs: pay per use, tiny | nothing to do |
+| 13 | Memories in `ga4-guide`'s Memory Bank (app `ga4_memory`, user `user`) | 2 facts, **deleted 2026-11-27** (0 left) | storage and search: pay per use, tiny (**guess**) | `uv run python scripts/memories.py list`, then `delete NAME`; they also go with the agent |
 
 **Billing (2026-11-27):** $41.51 this month, all Vertex AI (Gemini); budget "kc-okf-poc" $20/month on the billing account (alerts at 50/90/100/150%, **no cap**). Check Billing → Reports (group by service, then SKU) after each lesson.
 

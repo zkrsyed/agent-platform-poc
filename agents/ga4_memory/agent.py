@@ -12,7 +12,7 @@ Two changes from ga4_guide, everything else is reused:
   2. after_agent_callback: after each answer, send the session to Memory Bank, which extracts facts.
 
 Memory Bank is a feature of an Agent Runtime instance. We reuse the deployed ga4-guide's:
-  ./scripts/adk.sh web --memory_service_uri=agentengine://7105399555822190592 agents
+  ./scripts/adk.sh web --memory_service_uri=agentengine://projects/kc-okf-poc-261122/locations/us-central1/reasoningEngines/7105399555822190592 agents
 Memories are kept per app name (ga4_memory) and user id.
 """
 

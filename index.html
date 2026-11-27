@@ -1394,6 +1394,11 @@ lesson 12: ga4_a2a      ──AgentTool──► RemoteA2aAgent ══A2A/HTTP�
 <p>Nothing was moved: <code>ga4_team</code> is unchanged. Two new folders: the reviewer as its own agent (plus its A2A server file), and a new analyst that calls it by URL.</p></div>
 <div class="qa"><p class="q">Why does the remote agent show as a tool?</p>
 <p>Because we wrapped it in <code>AgentTool</code>: the model calls it like a function and gets the verdict back, and behind it is an HTTP call over A2A.</p></div>
+<div class="qa"><p class="q">If agents are found "by name", what about look-alikes? How does it know it's allowed?</p>
+<p>"By name" means the <strong>resource name</strong> (<code>projects/.../locations/.../agents/ID</code>), unique like a primary key; display names can collide. For agents that act, <strong>pin</strong> it in config instead of letting the model search. Finding is not permission: the gateway rule and IAM check the <strong>same resource name</strong> at call time, and default deny blocks look-alikes.</p>
+<pre class="code"><code>REVIEWER = "projects/kc-okf-poc-261122/locations/us-central1/agents/&lt;unique-id&gt;"
+sql_reviewer = AgentRegistry(project_id=..., location="us-central1").get_remote_a2a_agent(REVIEWER)
+# gateway: destination.agent_registry.agent.name == REVIEWER</code></pre></div>
 <p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/12-a2a/README.md">lessons/12-a2a</a> · evidence: <code>results/12-a2a.md</code>.</p>
 <div class="remember"><h4>Remember this</h4>
 <ul>

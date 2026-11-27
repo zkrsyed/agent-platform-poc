@@ -423,7 +423,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>9</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/09-identity-and-guardrails/README.md">Identity, IAM, guardrails in code</a></strong> <span class="cost">☁</span></td><td>Least-privilege roles for the agent principal (one 403 at a time); a <code>GuardrailsPlugin</code> that logs tool calls, blocks write and city-level SQL, asks before a full-table scan, and stops retry loops</td><td><span class="badge done">done</span></td></tr>
     <tr><td>10</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/10-registry/README.md">Registry: agents, MCP servers, skills</a></strong> <span class="cost">☁</span></td><td>Enable Agent Registry (free); find the auto-registered agent and Google's MCP servers; register our MCP server (tool spec) and skill; <code>ga4_registry</code> finds its skill and catalog tools in the registry</td><td><span class="badge done">done</span></td></tr>
     <tr><td>11</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/11-gateway/README.md">Agent Gateway + governance</a></strong> <span class="cost">☁</span></td><td>Preflight first (early preview access? organization?); egress gateway, default deny, a Unified Access Policy that blocks one MCP tool for our agent's principal; DRY_RUN then ENFORCED; Model Armor</td><td><span class="badge done">done</span></td></tr>
-    <tr><td>12</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/12-a2a/README.md">A2A between agents</a></strong> <span class="cost">☁</span></td><td>Lesson 7's reviewer as its own agent behind A2A (agent card, <code>to_a2a</code>, <code>RemoteA2aAgent</code>), first locally; later deployed with its own identity, found in the Registry</td><td><span class="badge planned">ready</span></td></tr>
+    <tr><td>12</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/12-a2a/README.md">A2A between agents</a></strong> <span class="cost">☁</span></td><td>Lesson 7's reviewer as its own agent behind A2A (agent card, <code>to_a2a</code>, <code>RemoteA2aAgent</code>), first locally; later deployed with its own identity, found in the Registry</td><td><span class="badge done">done</span></td></tr>
     <tr><td>13</td><td><strong>Memory</strong> <span class="cost">☁</span></td><td>Session vs Memory Bank (optional)</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>14</td><td><strong>Web GUI</strong> <span class="cost">☁</span></td><td>A chat page with login on Cloud Run calling the deployed agent; Gemini Enterprise app compared</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>15</td><td><strong>A2UI</strong> <span class="cost">☁</span></td><td>Results as an A2UI table, a picker for ambiguous questions; AG-UI and MCP Apps compared</td><td><span class="badge planned">planned</span></td></tr>
@@ -445,10 +445,10 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
 <p class="lede">What we did in each lesson, what we found, and the questions asked along the way, with the answers in plain words. It's written to be re-read later without the chat. Click a lesson to open it, or use the buttons to open or fold all of them. Evidence for every <strong>verified</strong> claim is in <code>results/</code>.</p>
 <div class="jctl"><button type="button" id="expandAll">Open all lessons</button><button type="button" id="collapseAll">Fold all lessons</button></div>
 <nav class="toc" id="jnav" aria-label="Jump to a lesson"></nav>
-<div class="remember"><h4>Next session (prepared on 2026-11-27)</h4>
+<div class="remember"><h4>Next session (prepared on 2026-11-27, after lesson 12)</h4>
 <ul>
-<li><strong>First, cost:</strong> the Agent Gateway <code>ga4-egress</code> is <strong>still running</strong> (price not published, maybe per hour). Turn it off with lesson 11's <strong>Part E</strong>, then look at Billing → Reports (group by service, then SKU).</li>
-<li><strong>Lesson 12, A2A:</strong> the reviewer from lesson 7 as its own agent. Part A runs locally: terminal A serves <code>sql_reviewer</code> on port 8001, terminal B runs <code>adk web</code> with <code>ga4_a2a</code>. Two questions at most (~$0.15–0.30 each, <strong>guess</strong>).</li>
+<li><strong>The gateway is off</strong> (lesson 11 Part E done). Nothing billed per hour is running; <code>ga4-guide</code> stays deployed (idle not billed during the Preview).</li>
+<li><strong>Next lesson:</strong> pick from the plan (13 Memory, 14 web GUI, 16 observability...). Each README will say its estimated cost first.</li>
 <li><strong>Cost rules</strong> (lesson plan): estimate evals before running them, 1 run by default; delete per-hour resources at the end of each session. The $20 project budget only warns.</li>
 <li>Each terminal tab: set <code>ID=7105399555822190592</code>, <code>R=...</code>, <code>P=...</code> before cloud commands. Problems and fixes: <a href="#troubleshooting">Troubleshooting</a>.</li>
 </ul></div>
@@ -1358,6 +1358,52 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
 </ul></div>
 </details>
 
+<details class="lesson" id="l12">
+<summary><span class="num">Lesson 12</span><span class="ttl">A2A: agents calling agents</span><span class="when">2026-11-27</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p><strong>A2A</strong> (Agent2Agent) is an open protocol for one agent to send a task to another over HTTP, even if the other runs elsewhere, is owned by another team, or is built in another framework. Each A2A agent publishes an <strong>agent card</strong> at <code>/.well-known/agent-card.json</code>: its name, what it does, its skills and where to reach it (like an OpenAPI document). In ADK, <code>to_a2a(agent)</code> turns an agent into an A2A server and builds the card; <code>RemoteA2aAgent(agent_card=URL)</code> is the caller's stand-in for the remote agent.</p>
+</div>
+
+<h4>What we did (locally, verified)</h4>
+<pre class="diagram">lesson 7:  data_analyst ──AgentTool──► sql_reviewer                         (same process: a function call)
+lesson 12: ga4_a2a      ──AgentTool──► RemoteA2aAgent ══A2A/HTTP══► sql_reviewer server :8001   (another process)</pre>
+<div class="table-wrap"><table>
+<tr><th>File</th><th>Role</th></tr>
+<tr><td><code>agents/sql_reviewer/agent.py</code></td><td>lesson 7's reviewer, copied into its own agent (skill only)</td></tr>
+<tr><td><code>agents/sql_reviewer/a2a_app.py</code></td><td><code>to_a2a(root_agent, port=8001)</code>, run with <code>uvicorn</code> (terminal A)</td></tr>
+<tr><td><code>agents/ga4_a2a/agent.py</code></td><td>the analyst: skill + BigQuery + <code>AgentTool(RemoteA2aAgent(agent_card="http://localhost:8001/.well-known/agent-card.json"))</code></td></tr>
+</table></div>
+<ul>
+  <li><strong>The analyst's log told the story:</strong> <code>GET .../agent-card.json 200</code> (read the card) → <code>resolved remote A2A agent: sql_reviewer</code> → <code>POST http://localhost:8001 200</code> (the A2A call) → <code>execute_sql</code> → <strong>$3,353.00</strong> for 2021-01-25, the same final figure as earlier lessons.</li>
+  <li><strong>It shows as a tool call</strong> because <code>AgentTool</code> makes any agent look like a function to the model. <code>sub_agents=[...]</code> would <strong>transfer</strong> the conversation instead (lesson 7 used both).</li>
+  <li><strong>Each agent keeps its own memory:</strong> "Ignoring a session state delta from a remote A2A peer". Only the reply comes back.</li>
+</ul>
+<figure class="shot"><img src="docs/screenshots/12-a2a-trace.webp" alt="adk web trace: sql_reviewer tool span of 11.2 s with many short a2a.client.transport spans under it" loading="lazy"><figcaption>The analyst's trace: <code>sql_reviewer</code> took 11.2 of 25 s. Under it, only the A2A "wire" (<code>a2a.client.transport</code>, microseconds each). The reviewer's own Gemini calls ran in the other process, so the caller sees a black box: a duration and an answer.</figcaption></figure>
+
+<h4>In the cloud (not run, by choice)</h4>
+<div class="table-wrap"><table>
+<tr><th>Step</th><th>What would happen</th></tr>
+<tr><td>Deploy</td><td>the reviewer becomes a second Agent Runtime agent with its <strong>own agent identity</strong> and its own deploys</td></tr>
+<tr><td>Find</td><td>its card goes into Agent Registry as an A2A agent; the analyst finds it <strong>by name</strong>, not URL (<strong>docs</strong>; our ADK agent was "Non A2A" in lesson 10, <strong>to check</strong>)</td></tr>
+<tr><td>Allow</td><td>IAM on the reviewer decides which identities may call it (<strong>guess</strong>); a gateway rule on <code>destination.agent_registry.agent.name</code> controls agent-to-agent calls (<strong>docs</strong>)</td></tr>
+<tr><td>Cost</td><td>idle free during the Preview; each question pays Gemini on <strong>both</strong> agents</td></tr>
+</table></div>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">What did you change, and did you move anything?</p>
+<p>Nothing was moved: <code>ga4_team</code> is unchanged. Two new folders: the reviewer as its own agent (plus its A2A server file), and a new analyst that calls it by URL.</p></div>
+<div class="qa"><p class="q">Why does the remote agent show as a tool?</p>
+<p>Because we wrapped it in <code>AgentTool</code>: the model calls it like a function and gets the verdict back, and behind it is an HTTP call over A2A.</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/12-a2a/README.md">lessons/12-a2a</a> · evidence: <code>results/12-a2a.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>Agent card = the agent's public description and address, at <code>/.well-known/agent-card.json</code>.</li>
+<li><code>to_a2a</code> serves an agent; <code>RemoteA2aAgent</code> calls one.</li>
+<li>Remote agents are black boxes to the caller: answer and timing, not their steps.</li>
+<li>Locally you need the address; in the cloud, the registry name plus identity and IAM.</li>
+</ul></div>
+</details>
+
 <h2 id="troubleshooting">Troubleshooting and lessons learned</h2>
 <p class="lede">Every problem we hit, with its cause and fix, for later reference. Also in <a href="docs/troubleshooting.md">docs/troubleshooting.md</a>.</p>
 <div class="table-wrap"><table>
@@ -1398,6 +1444,8 @@ catalog = registry_mcp_toolset("dataplex.googleapis.com",
 <tr><td>11</td><td>IAP log empty or all <code>granted: true</code></td><td>IAP logged only the MCP <code>initialize</code>, even for calls the door denied</td><td>Read the gateway log: <code>jsonPayload.authzPolicyInfo.result</code> (ALLOWED / DENIED)</td></tr>
 <tr><td>11</td><td>DRY_RUN shows ALLOWED for everything</td><td>In dry run the guard lets every call through and the gateway log says ALLOWED</td><td>Enforce briefly to see real DENIED results</td></tr>
 <tr><td>11</td><td>Blocked tool, but the agent still answered (and named the blocked source)</td><td>The same knowledge was in the skill and BigQuery; the model claimed the catalog anyway</td><td>Check traces and the gateway log, not just the answer</td></tr>
+<tr><td>11</td><td>Redeployed without <code>--gateway</code>, but the agent is still bound</td><td>A missing setting keeps its old value on update</td><td>PATCH <code>?updateMask=spec.deploymentSpec.agentGatewayConfig</code> with an empty <code>deploymentSpec</code> (lesson 11 Part E)</td></tr>
+<tr><td>12</td><td>&quot;Ignoring a session state delta from a remote A2A peer&quot;</td><td>Each agent keeps its own session state</td><td>Expected: return what the caller needs in the reply</td></tr>
 </table></div>
 <h3>Lessons learned</h3>
 <ul>

@@ -2,6 +2,8 @@
 
 **Goal:** take lesson 7's `sql_reviewer` out of the analyst's process and run it as **its own agent**, reachable over the **A2A protocol** (Agent2Agent). The analyst then calls it by URL, the way one team's service calls another's. First locally (free except Gemini), then decide whether to deploy it to Agent Runtime.
 
+**Outcome (verified 2026-11-27):** done locally. The analyst read the card, called the reviewer over A2A (`POST http://localhost:8001 200`) and answered $3,353.00; the trace showed the reviewer as an 11.2 s black box. Part C (cloud) not run, by choice. Evidence: `results/12-a2a.md`.
+
 **Cost:** Part A runs on the laptop; only Gemini costs money. One question ≈ the analyst (4–6 Gemini calls) + the reviewer (about 3 per review) ≈ **$0.15–0.30** (**guess**, from lesson 11's ~$0.11 per question). Ask **two questions at most**. Part C (cloud) is a separate decision.
 
 ## Why this lesson exists
@@ -89,7 +91,7 @@ Stop terminal A (Ctrl+C) and ask again in a **New Session**. **Look for:** what 
 | Who can change it | whoever deploys the analyst | the reviewer's owners, without redeploying the analyst |
 | Identity in the cloud | the analyst's | its own (Part C) |
 | Failure mode | none (same process) | network: down, slow, wrong URL |
-| Trace | one trace | one trace per side (unless trace context is passed) (**guess**, Step 3 shows) |
+| Trace | one trace | the caller sees the remote call's duration and answer, not its steps (**verified**: 11.2 s span, only `a2a.client.transport` under it) |
 
 ---
 

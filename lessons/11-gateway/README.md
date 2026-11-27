@@ -272,17 +272,24 @@ A gateway can't be paused: we **delete** it and **recreate** it when a lesson ne
 ```bash
 cd ~/apps/agent-platform-poc
 ID=7105399555822190592
-# 1. Redeploy the agent WITHOUT --gateway (back to direct calls; keeps tracing on)
+# 1a. Redeploy the agent WITHOUT --gateway (mTLS catalog host, bound tokens on; keeps tracing on)
 uv run python scripts/stage_deploy.py
 uv run adk deploy agent_engine --project kc-okf-poc-261122 --region us-central1 --agent_engine_id $ID --otel_to_cloud \
   --display_name ga4-guide --description "GA4 data guide (lesson 11 done, no gateway, traced)" build/ga4_guide
+# 1b. The redeploy does NOT remove the binding (verified 2026-11-27: a missing setting keeps the old value).
+#     Clear it with the docs' PATCH on that one field, then wait ~3 minutes for the operation:
+curl -s -X PATCH -H "Authorization: Bearer $(gcloud auth print-access-token)" -H "Content-Type: application/json" \
+  "https://us-central1-aiplatform.googleapis.com/v1/projects/kc-okf-poc-261122/locations/us-central1/reasoningEngines/$ID?updateMask=spec.deploymentSpec.agentGatewayConfig" \
+  -d '{"spec":{"deploymentSpec":{}}}'
+curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  "https://us-central1-aiplatform.googleapis.com/v1/projects/kc-okf-poc-261122/locations/us-central1/reasoningEngines/$ID" | jq '.spec.deploymentSpec.agentGatewayConfig'   # null = disconnected
 # 2. Remove the hookup, the guard, then the door
 gcloud network-security authz-policies delete ga4-egress-authz --location us-central1 --project kc-okf-poc-261122
 gcloud beta service-extensions authz-extensions delete ga4-iap-guard --location us-central1 --project kc-okf-poc-261122
 gcloud network-services agent-gateways delete ga4-egress --location us-central1 --project kc-okf-poc-261122
 gcloud network-services agent-gateways list --location us-central1 --project kc-okf-poc-261122
 ```
-**Look for:** after the deploy, Service configuration shows **Agent to Anywhere (Egress): —**; the last command prints `Listed 0 items`. Ask one Playground question to check the agent still reaches the catalog (direct, mTLS host).
+**Look for:** after 1b, the last `curl` prints `null` and Service configuration shows **Agent to Anywhere (Egress): —**; the last command prints `Listed 0 items`. Ask one Playground question to check the agent still reaches the catalog (direct, mTLS host).
 
 **Kept (free, config only):** the access policy `ga4-guide-egress` and its binding (the list), and the enabled APIs. They do nothing without a gateway.
 

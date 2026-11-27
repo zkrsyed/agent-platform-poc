@@ -1,6 +1,6 @@
 # Troubleshooting and lessons learned
 
-Every problem we hit in lessons 4 to 11, with its cause and fix. The same table is in `index.html` (Troubleshooting section).
+Every problem we hit in lessons 4 to 12, with its cause and fix. The same table is in `index.html` (Troubleshooting section).
 
 | Lesson | Symptom | Cause | Fix |
 |---|---|---|---|
@@ -40,6 +40,8 @@ Every problem we hit in lessons 4 to 11, with its cause and fix. The same table 
 | 11 | IAP log empty or all `granted: true` | IAP logged only the MCP `initialize`, even for calls the door denied | Read the gateway log: `jsonPayload.authzPolicyInfo.result` (ALLOWED / DENIED) |
 | 11 | DRY_RUN shows ALLOWED for everything | In dry run the guard lets every call through and the gateway log says ALLOWED | Enforce briefly to see real DENIED results |
 | 11 | Blocked tool, but the agent still answered (and named the blocked source) | The same knowledge was in the skill and BigQuery; the model claimed the catalog anyway | Check traces and the gateway log, not just the answer |
+| 11 | Redeployed without `--gateway`, but the agent is still bound | A missing setting keeps its old value on update | PATCH `?updateMask=spec.deploymentSpec.agentGatewayConfig` with an empty `deploymentSpec` (lesson 11 Part E) |
+| 12 | "Ignoring a session state delta from a remote A2A peer" | Each agent keeps its own session state | Expected: return what the caller needs in the reply |
 
 ## Lessons learned
 

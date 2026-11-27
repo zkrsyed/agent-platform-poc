@@ -434,7 +434,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>20</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; gateway decisions, threat scanning</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>21</td><td><strong>Score, cost, clean up</strong> <span class="cost">☁</span></td><td>Setups D (single) and E (multi-agent) against kc-okf's A–C; cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>22</td><td><strong>Same agent in LangGraph</strong></td><td>The lesson 3 agent rebuilt in LangGraph; mapping to ADK concepts; same Gemini, project and Langfuse; same 5 questions scored (optional, after lesson 5)</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>23</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/23-caching/README.md">Caching and cost</a></strong></td><td>Three places to cache: data in our MCP server, tool results in session state, and the model's input (Gemini implicit caching vs ADK's <code>ContextCacheConfig</code>); measure cost, latency and score on lesson 6's evalset (after lesson 6)</td><td><span class="badge planned">ready</span></td></tr>
+    <tr><td>23</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/23-caching/README.md">Caching and cost</a></strong></td><td>Three places to cache: data in our MCP server, tool results in session state, and the model's input (Gemini implicit caching vs ADK's <code>ContextCacheConfig</code>); measured with <code>scripts/measure_tokens.py</code>: trimming the duplicate MCP payload cut input by 29%</td><td><span class="badge done">done</span></td></tr>
   </tbody>
 </table>
 </div>
@@ -445,9 +445,10 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
 <p class="lede">What we did in each lesson, what we found, and the questions asked along the way, with the answers in plain words. It's written to be re-read later without the chat. Click a lesson to open it, or use the buttons to open or fold all of them. Evidence for every <strong>verified</strong> claim is in <code>results/</code>.</p>
 <div class="jctl"><button type="button" id="expandAll">Open all lessons</button><button type="button" id="collapseAll">Fold all lessons</button></div>
 <nav class="toc" id="jnav" aria-label="Jump to a lesson"></nav>
-<div class="remember"><h4>Next session (prepared on 2026-11-27, after lesson 12)</h4>
+<div class="remember"><h4>Next session (prepared on 2026-11-27, after lesson 23)</h4>
 <ul>
-<li><strong>Lesson 23, caching and cost</strong>, is next (chosen over 13 because of the bill). Four local runs of <code>scripts/measure_tokens.py</code> with cost switches (trim the duplicate MCP payload, cache catalog answers, explicit context caching), about $0.50–1.00 in total.</li>
+<li><strong>Lesson 23 is done:</strong> trimming the duplicate MCP payload cut input by 29%. Not yet in the deployed agent: add <code>COST_TRIM=1</code> to the build's <code>.env</code> at the next redeploy. Explicit context caching is still unmeasured.</li>
+<li><strong>Next lesson:</strong> to choose (13 Memory Bank, 14 Web GUI or 16 Observability are the candidates).</li>
 <li><strong>Nothing billed per hour is running</strong>: the lesson 11 gateway is deleted; <code>ga4-guide</code> stays deployed (idle not billed during the Preview).</li>
 <li><strong>Cost rules</strong> (lesson plan): estimate evals before running them, 1 run by default; delete per-hour resources at the end of each session. The $20 project budget only warns.</li>
 <li>Each terminal tab: set <code>ID=7105399555822190592</code>, <code>R=...</code>, <code>P=...</code> before cloud commands. Problems and fixes: <a href="#troubleshooting">Troubleshooting</a>.</li>
@@ -1409,6 +1410,70 @@ sql_reviewer = AgentRegistry(project_id=..., location="us-central1").get_remote_
 </ul></div>
 </details>
 
+<details class="lesson" id="l23">
+<summary><span class="num">Lesson 23</span><span class="ttl">Caching and cost</span><span class="when">2026-11-27</span><span class="badge done">done</span></summary>
+<div class="basics"><h4>The basics</h4>
+<p>Every Gemini call re-sends the <strong>whole conversation so far</strong>: instruction, skill text, every tool result. One question made 6–7 calls, so a big tool result is paid for again on each call after it. The catalog's <code>lookup_context</code> returns its answer <strong>twice</strong> (<code>content</code> as text and <code>structuredContent</code> as JSON). This lesson measured four switches, run locally with <code>scripts/measure_tokens.py</code> (2 questions in one session).</p>
+</div>
+
+<h4>Three caches and one trim</h4>
+<pre class="diagram">analyst question
+   │
+   ▼
+ ADK agent loop ──► Gemini ◄── implicit cache (Google, automatic, always on)
+   │                  ▲        explicit context cache (ADK setting, from turn 2)
+   ▼                  │ (results join the conversation)
+ tool call ── tool cache plugin (skip a repeat catalog call)
+          ── trim plugin (cut the duplicate half of the result; not a cache)
+   ▼
+ catalog MCP</pre>
+<div class="table-wrap"><table>
+<tr><th>Switch</th><th>What it is</th><th>Who does it</th><th>Saves</th></tr>
+<tr><td><code>COST_TRIM</code></td><td><code>TrimMcpPlugin</code>: drops <code>structuredContent</code></td><td>our plugin (<code>cost.py</code>)</td><td>tokens, on every later call</td></tr>
+<tr><td><code>COST_TOOL_CACHE</code></td><td><code>ToolCachePlugin</code>: same call, same arguments → answer from session state (a <strong>HIT</strong>)</td><td>our plugin (<code>cost.py</code>)</td><td>a catalog call, not tokens</td></tr>
+<tr><td><code>COST_CONTEXT_CACHE</code></td><td>ADK <code>ContextCacheConfig</code>: Gemini stores the conversation's start on purpose</td><td>built into ADK, one setting on <code>App</code></td><td>lower price, from turn 2</td></tr>
+<tr><td>(always on)</td><td>implicit cache: Gemini notices a repeated start by itself</td><td>Google, automatic</td><td>lower price, not guaranteed</td></tr>
+</table></div>
+
+<h4>What we measured (verified)</h4>
+<div class="table-wrap"><table>
+<tr><th>Run</th><th>Switches on</th><th>Gemini calls</th><th>Q1 input</th><th>Q2 input</th><th>Total input</th><th>Cached by Gemini</th><th>vs baseline</th></tr>
+<tr><td>1</td><td>none</td><td>9</td><td>142,123</td><td>73,785</td><td><strong>215,908</strong></td><td>132,952 (62%)</td><td>—</td></tr>
+<tr><td>2</td><td>trim</td><td>8</td><td>102,335</td><td>51,113</td><td><strong>153,448</strong></td><td>99,704 (65%)</td><td><strong>−29%</strong></td></tr>
+<tr><td>3</td><td>trim + tool cache</td><td>8</td><td>100,503</td><td>51,824</td><td><strong>152,327</strong></td><td>91,614 (60%)</td><td>−29%</td></tr>
+<tr><td>4</td><td>+ context cache</td><td>7</td><td>101,520</td><td>25,176 ⚠️</td><td>126,696 ⚠️</td><td>69,327 (55%)</td><td>not comparable</td></tr>
+</table></div>
+<ul>
+  <li><strong>Trim is the win:</strong> −29%, same tools, same answers. Q2 got cheaper too, although it never called the catalog: the smaller answer from Q1 is re-sent on every later call.</li>
+  <li><strong>Tool cache: no HIT.</strong> In Q2 the model answered from the conversation and only ran <code>execute_sql</code>. Nothing to reuse.</li>
+  <li><strong>Run 4 stopped halfway:</strong> the model wrote SQL without <code>event_date_dt</code>, and lesson 9's guardrail paused for a human (<code>adk_request_confirmation</code>). The script can't approve, so Q2 ended after 1 call. Explicit context caching stays <strong>unmeasured</strong>.</li>
+  <li><strong>Gemini reports one <code>cached</code> number</strong> for implicit and explicit caching together, and the implicit share varies from run to run (Q1: 46K vs 58K cached with the same setup).</li>
+</ul>
+
+<h4>Questions and answers</h4>
+<div class="qa"><p class="q">What does HIT mean? Is it an acronym?</p>
+<p>No, just the word: you looked in the cache and found it. The opposite is a <strong>miss</strong>: not there, so the real call runs and the answer is saved.</p></div>
+<div class="qa"><p class="q">Where is the tool cache saved?</p>
+<p>In session state, under <code>cache:TOOL:ARGS</code>: process memory for the script and local <code>adk web</code>, Google's session store for the deployed agent. It lasts as long as the conversation. Session state isn't sent to Gemini unless the instruction pulls it in with <code>{...}</code>.</p></div>
+<div class="qa"><p class="q">Why plugins, and why isn't the context cache one?</p>
+<p>A plugin wraps every tool call of the App in one place (like ASP.NET middleware), without touching the MCP tools ADK builds for us, and is easy to switch on and off. The context cache is about the request to Gemini, not tool calls, and ADK has it built in: one setting, like turning on a feature in options.</p></div>
+<div class="qa"><p class="q">How do the switches reach the agent?</p>
+<p><code>COST_TRIM=1 uv run ...</code> sets an environment variable for that one run. When the script imports <code>ga4_guide.agent</code>, the bottom of <code>agent.py</code> checks each switch and adds the plugin (or the cache setting) to the <code>App</code>. Nothing is saved between runs.</p></div>
+<div class="qa"><p class="q">Implicit vs explicit caching?</p>
+<p>Both happen at Google. <strong>Implicit</strong>: Google notices by itself that a request starts like a recent one and bills that part lower; no setup, no guarantee. <strong>Explicit</strong>: ADK tells Google to store the start and gets an ID; later calls send the ID. Guaranteed, from turn 2, with a small storage fee per hour (<strong>guess</strong>). Like a barista who sometimes remembers your order, vs saving your order in the app.</p></div>
+<div class="qa"><p class="q">Is human-in-the-loop a hook or plugin, or something else?</p>
+<p>Both ways exist. On a tool: <code>FunctionTool(fn, require_confirmation=True)</code>. From a plugin: <code>tool_context.request_confirmation(...)</code> in <code>before_tool_callback</code>, which is what our lesson 9 guardrail does. Either way ADK pauses, emits <code>adk_request_confirmation</code>, waits, and resumes on yes or no. (Claude first said it wasn't a plugin thing; run 4 showed otherwise.)</p></div>
+<p class="diagram-note">Text: <a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/23-caching/README.md">lessons/23-caching</a> · evidence: <code>results/23-caching.md</code>.</p>
+<div class="remember"><h4>Remember this</h4>
+<ul>
+<li>Every Gemini call re-sends everything so far: shrink big tool results first.</li>
+<li>Trim isn't a cache; it was the 29% saving.</li>
+<li>A tool cache saves calls, not tokens, and only if calls repeat.</li>
+<li>Implicit caching is free and automatic (~60% here); explicit caching needs setup and turn 2.</li>
+<li>Unattended test runs stop at human-in-the-loop guardrails.</li>
+</ul></div>
+</details>
+
 <h2 id="troubleshooting">Troubleshooting and lessons learned</h2>
 <p class="lede">Every problem we hit, with its cause and fix, for later reference. Also in <a href="docs/troubleshooting.md">docs/troubleshooting.md</a>.</p>
 <div class="table-wrap"><table>
@@ -1451,6 +1516,8 @@ sql_reviewer = AgentRegistry(project_id=..., location="us-central1").get_remote_
 <tr><td>11</td><td>Blocked tool, but the agent still answered (and named the blocked source)</td><td>The same knowledge was in the skill and BigQuery; the model claimed the catalog anyway</td><td>Check traces and the gateway log, not just the answer</td></tr>
 <tr><td>11</td><td>Redeployed without <code>--gateway</code>, but the agent is still bound</td><td>A missing setting keeps its old value on update</td><td>PATCH <code>?updateMask=spec.deploymentSpec.agentGatewayConfig</code> with an empty <code>deploymentSpec</code> (lesson 11 Part E)</td></tr>
 <tr><td>12</td><td>&quot;Ignoring a session state delta from a remote A2A peer&quot;</td><td>Each agent keeps its own session state</td><td>Expected: return what the caller needs in the reply</td></tr>
+<tr><td>23</td><td>A script run stops early; <code>adk_request_confirmation</code> in the tools list</td><td>Lesson 9's guardrail asked a human to approve SQL without <code>event_date_dt</code>; nobody answers in a script</td><td>Treat that run as incomplete and run it again, or test in <code>adk web</code> and approve</td></tr>
+<tr><td>23</td><td>No <code>[tool_cache] HIT</code></td><td>The model didn't repeat a catalog call; it used the answer already in the conversation</td><td>Expected: the cache only helps when calls repeat</td></tr>
 </table></div>
 <h3>Lessons learned</h3>
 <ul>

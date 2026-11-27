@@ -42,6 +42,8 @@ Every problem we hit in lessons 4 to 12, with its cause and fix. The same table 
 | 11 | Blocked tool, but the agent still answered (and named the blocked source) | The same knowledge was in the skill and BigQuery; the model claimed the catalog anyway | Check traces and the gateway log, not just the answer |
 | 11 | Redeployed without `--gateway`, but the agent is still bound | A missing setting keeps its old value on update | PATCH `?updateMask=spec.deploymentSpec.agentGatewayConfig` with an empty `deploymentSpec` (lesson 11 Part E) |
 | 12 | "Ignoring a session state delta from a remote A2A peer" | Each agent keeps its own session state | Expected: return what the caller needs in the reply |
+| 23 | A script run stops early; `adk_request_confirmation` in the tools list | Lesson 9's guardrail asked a human to approve SQL without `event_date_dt`; nobody answers in a script | Treat that run as incomplete and run it again, or test in `adk web` and approve |
+| 23 | No `[tool_cache] HIT` | The model didn't repeat a catalog call; it used the answer already in the conversation | Expected: the cache only helps when calls repeat |
 
 ## Lessons learned
 

@@ -179,3 +179,6 @@ Every term this POC touches, explained in one line with a .NET or SQL Server com
 | **DRY_RUN vs ENFORCED** | Dry run lets every call through and logs; enforced really blocks. In our test the dry run logged ALLOWED for everything | Report-only vs enforced | 11 |
 | **Registered vs unregistered destination** | Registered = in the gateway's regional Agent Registry (tool-level rules possible); unregistered = a plain host (host/path rules only) | Known service vs raw URL | 11 |
 | **Certificate-bound token** | A token that works only with the agent's own certificate (mTLS); turned off with a gateway (GOOGLE_API_ENABLE_RUNTIME_BOUND_TOKEN=false) | A token pinned to a client cert | 11 |
+| **Explicit context caching** | ADK (`ContextCacheConfig` on `App`) asks Gemini to store the conversation's start and reuse it by ID, from turn 2; small storage fee | A prepared statement cache | 23 |
+| **Cache hit / miss** | Hit: found in the cache, the real call is skipped. Miss: not there, the real call runs and the answer is saved | `TryGetValue` true / false | 23 |
+| **Trim (tool result)** | Cut what a tool returns before the model sees it; not a cache. Here: drop MCP's duplicate `structuredContent` | DTO projection | 23 |

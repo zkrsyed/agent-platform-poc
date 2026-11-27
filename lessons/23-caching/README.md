@@ -15,7 +15,7 @@ The biggest one: the catalog's `lookup_context`. MCP returns its answer **twice*
 | Idea | Where it saves | Trade-off | .NET comparison |
 |---|---|---|---|
 | **Trim tool results** | fewer tokens in every later Gemini call | must not drop anything the model needs | DTO projection |
-| **Tool-result cache in session state** | skips repeat calls to the catalog in one conversation (and their tokens on the way in) | stale if the data changes mid-conversation | per-request memo / `IMemoryCache` per session |
+| **Tool-result cache in session state** | skips repeat calls to the catalog in one conversation (time and API use; **not** Gemini tokens: the saved answer still enters the conversation) | stale if the data changes mid-conversation | per-request memo / `IMemoryCache` per session |
 | **Data cache in the MCP server** (lesson 5, `OKF_CACHE_SECONDS`) | fewer calls from the server to the catalog API | freshness | output caching |
 | **Implicit caching** (Gemini, automatic) | repeated prompt **prefixes** are billed lower; nothing to set up (lesson 5 saw `input_cached_tokens` ~7,200) | only when the prefix repeats exactly | a query plan cache |
 | **Explicit context caching** (ADK `ContextCacheConfig`) | ADK creates a Gemini cache of the conversation's start and reuses it | starts on the **2nd turn**, needs ≥ **4,096** tokens for Gemini 3 models (**ADK docstring**); the cache itself is stored for a fee per hour (**guess**: Vertex pricing) | a prepared statement cache |
@@ -53,7 +53,7 @@ COST_TRIM=1 COST_TOOL_CACHE=1 COST_CONTEXT_CACHE=1 uv run python scripts/measure
 **Look for:**
 - **Run 1:** the input total for 2 questions (we expect a few hundred thousand tokens), and how much is already `cached` by Gemini's implicit caching.
 - **Run 2:** input drops a lot if `lookup_context` was called (**guess**: 30–50%). The answers should be the same.
-- **Run 3:** a `[tool_cache] HIT` line if Q2 repeats a Q1 catalog call. Whether it repeats depends on the model's choices; if there's no HIT, the cache had nothing to do (worth knowing too).
+- **Run 3:** a `[tool_cache] HIT` line if Q2 repeats a Q1 catalog call. Whether it repeats depends on the model's choices; if there's no HIT, the cache had nothing to do (worth knowing too). A HIT saves a catalog call, not tokens, so expect input about the same as run 2.
 - **Run 4:** a bigger `cached` share from Q2 on (explicit cache).
 
 Each run's trace also goes to Langfuse (project `agent-platform-poc`), if you want to look at a run span by span.
@@ -62,13 +62,15 @@ Each run's trace also goes to Langfuse (project `agent-platform-poc`), if you wa
 
 ## Part B: decide what to keep
 
-We fill this table together with your numbers:
+Filled in with the 2026-11-27 runs (details in `results/23-caching.md`):
 
-| Switch | Saving (your run) | Risk | Keep for the deployed agent? |
+| Switch | Saving (our run) | Risk | Keep for the deployed agent? |
 |---|---|---|---|
-| Trim | | low: same text, one copy | |
-| Tool cache | | stale only if the catalog changes mid-conversation | |
-| Explicit context cache | | small storage fee; no effect on short sessions | |
+| Trim | **−29%** input (215,908 → 153,448 tokens) | low: same text, one copy | **yes**, at the next redeploy |
+| Tool cache | 0: no HIT, Q2 made no catalog call | stale only if the catalog changes mid-conversation | no need for now |
+| Explicit context cache | not measured: run 4's Q2 stopped at the guardrail (below) | small storage fee; no effect on short sessions | open; implicit caching already covers ~60% |
+
+**Watch out:** lesson 9's guardrail asks a human before a query without `event_date_dt`. In a script nobody answers, so the run stops (`adk_request_confirmation` in the tools list) and its numbers are not comparable.
 
 Turning one on for the deployed agent = add the line to the build's `.env` in `scripts/stage_deploy.py` and redeploy (lesson 8). **Not done in this lesson**; we decide after Part A.
 

@@ -19,6 +19,9 @@ from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 from google.adk.tools.skill_toolset import SkillToolset  # NEW
 from google.auth.transport.requests import Request
 
+from google.adk.agents.context_cache_config import ContextCacheConfig  # lesson 23
+
+from .cost import ToolCachePlugin, TrimMcpPlugin  # lesson 23
 from .guardrails import GuardrailsPlugin  # lesson 9
 
 
@@ -115,4 +118,23 @@ If a tool fails, say what failed. Never invent figures.""",
 
 # Lesson 9: an App wraps the agent and adds plugins that run around every call.
 # adk web and adk deploy look for `app` first, then `root_agent`.
-app = App(name="ga4_guide", root_agent=root_agent, plugins=[GuardrailsPlugin()])
+#
+# Lesson 23: cost switches, all OFF unless set, so we can measure before and after.
+#   COST_TRIM=1          drop the duplicate MCP payload       (cost.py, TrimMcpPlugin)
+#   COST_TOOL_CACHE=1    reuse catalog answers in a session    (cost.py, ToolCachePlugin)
+#   COST_CONTEXT_CACHE=1 Gemini explicit context caching       (ADK ContextCacheConfig)
+# Plugin order matters: ADK stops at the first plugin callback that returns something, so the
+# cache (saves, returns None) goes before trim (returns the trimmed result).
+_on = lambda name: os.environ.get(name, "") == "1"  # noqa: E731
+_plugins = [GuardrailsPlugin()]
+if _on("COST_TOOL_CACHE"):
+    _plugins.append(ToolCachePlugin())
+if _on("COST_TRIM"):
+    _plugins.append(TrimMcpPlugin())
+
+app = App(
+    name="ga4_guide",
+    root_agent=root_agent,
+    plugins=_plugins,
+    context_cache_config=ContextCacheConfig(ttl_seconds=600) if _on("COST_CONTEXT_CACHE") else None,
+)

@@ -434,7 +434,7 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
     <tr><td>20</td><td><strong>Tour: what ended up where</strong></td><td>Console and gcloud views of every piece; gateway decisions, threat scanning</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>21</td><td><strong>Score, cost, clean up</strong> <span class="cost">☁</span></td><td>Setups D (single) and E (multi-agent) against kc-okf's A–C; cost; delete resources</td><td><span class="badge planned">planned</span></td></tr>
     <tr><td>22</td><td><strong>Same agent in LangGraph</strong></td><td>The lesson 3 agent rebuilt in LangGraph; mapping to ADK concepts; same Gemini, project and Langfuse; same 5 questions scored (optional, after lesson 5)</td><td><span class="badge planned">planned</span></td></tr>
-    <tr><td>23</td><td><strong>Caching and cost</strong></td><td>Three places to cache: data in our MCP server, tool results in session state, and the model's input (Gemini implicit caching vs ADK's <code>ContextCacheConfig</code>); measure cost, latency and score on lesson 6's evalset (after lesson 6)</td><td><span class="badge planned">planned</span></td></tr>
+    <tr><td>23</td><td><strong><a href="https://github.com/zkrsyed/agent-platform-poc/blob/main/lessons/23-caching/README.md">Caching and cost</a></strong></td><td>Three places to cache: data in our MCP server, tool results in session state, and the model's input (Gemini implicit caching vs ADK's <code>ContextCacheConfig</code>); measure cost, latency and score on lesson 6's evalset (after lesson 6)</td><td><span class="badge planned">ready</span></td></tr>
   </tbody>
 </table>
 </div>
@@ -447,8 +447,8 @@ figure.shot figcaption{color:var(--muted);font-size:.88rem;margin-top:6px}
 <nav class="toc" id="jnav" aria-label="Jump to a lesson"></nav>
 <div class="remember"><h4>Next session (prepared on 2026-11-27, after lesson 12)</h4>
 <ul>
-<li><strong>The gateway is off</strong> (lesson 11 Part E done). Nothing billed per hour is running; <code>ga4-guide</code> stays deployed (idle not billed during the Preview).</li>
-<li><strong>Next lesson:</strong> pick from the plan (13 Memory, 14 web GUI, 16 observability...). Each README will say its estimated cost first.</li>
+<li><strong>Lesson 23, caching and cost</strong>, is next (chosen over 13 because of the bill). Four local runs of <code>scripts/measure_tokens.py</code> with cost switches (trim the duplicate MCP payload, cache catalog answers, explicit context caching), about $0.50–1.00 in total.</li>
+<li><strong>Nothing billed per hour is running</strong>: the lesson 11 gateway is deleted; <code>ga4-guide</code> stays deployed (idle not billed during the Preview).</li>
 <li><strong>Cost rules</strong> (lesson plan): estimate evals before running them, 1 run by default; delete per-hour resources at the end of each session. The $20 project budget only warns.</li>
 <li>Each terminal tab: set <code>ID=7105399555822190592</code>, <code>R=...</code>, <code>P=...</code> before cloud commands. Problems and fixes: <a href="#troubleshooting">Troubleshooting</a>.</li>
 </ul></div>
